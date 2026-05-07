@@ -23,10 +23,23 @@
 
 ## Result
 
-(Fill in after running)
+**Run date:** 2026-05-07
+**Run by:** Gabriel
+**Hardware/OS:** Windows 11, VB-CABLE basic (single cable, not A+B variant)
 
-- [ ] PASS - tone audible on CABLE-A Output via Windows monitoring
-- [ ] FAIL - describe what happened: (e.g., "setSinkId threw NotFoundError", "tone played to default speakers instead", etc.)
+- [x] **PASS** — tone audible on CABLE Output via Windows monitoring
+- [ ] FAIL
+
+### Notes
+
+- Tested with the basic VB-CABLE (single cable named "CABLE Input"/"CABLE Output"), not the A+B variant. The single cable was sufficient to validate that `AudioContext.setSinkId()` accepts a virtual cable's `deviceId` and routes audio through it.
+- For full M1 (bidirectional), VB-CABLE A+B will need to be installed (donationware). The spike does not block on that — the Web Audio API behavior is identical for any virtual playback device.
+
+### Issues encountered during spike scaffold (now fixed)
+
+1. **`type: module` in root package.json** caused tsc's CommonJS output (`exports.X = ...`) to fail to load as ESM. **Fix:** wrapper script `scripts/run-spike.cjs` renames the compiled output to `.cjs` so Node forces CommonJS regardless of the parent `package.json`.
+2. **`data:` URLs are not a secure context** in Electron, which strips `navigator.mediaDevices` (yielding `undefined`). **Fix:** spike now writes its HTML to a temp file and loads it via `loadFile()` for a proper `file://` origin.
+3. **Default `setPermissionRequestHandler`** suppressed media permission. **Fix:** spike installs a handler that auto-grants `media` so device labels are populated without a popup.
 
 ## If FAIL
 

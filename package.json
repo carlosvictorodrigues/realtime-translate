@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.renderer.json",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\" \"tests/**/*.ts\"",
-    "spike": "tsc --module CommonJS --target ES2020 --outDir out/spike --esModuleInterop --skipLibCheck scripts/spike-setSinkId.ts && electron out/spike/spike-setSinkId.js",
+    "spike": "node scripts/run-spike.cjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
