@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { float32ToPcm16Base64, pcm16Base64ToFloat32 } from '@main/util/pcmCodec';
+import { float32ToPcm16Base64, pcm16Base64ToFloat32 } from '@shared/util/pcmCodec';
 
 describe('pcmCodec', () => {
   it('encodes a known Float32 sample to PCM16 base64', () => {
@@ -30,8 +30,17 @@ describe('pcmCodec', () => {
   it('clamps values outside [-1, 1]', () => {
     const input = new Float32Array([2.0, -2.0]);
     const decoded = pcm16Base64ToFloat32(float32ToPcm16Base64(input));
-    expect(decoded[0]).toBeCloseTo(0.99997, 3);
-    expect(decoded[1]).toBeCloseTo(-1.0, 3);
+    expect(decoded[0]).toBeCloseTo(1.0, 5);
+    expect(decoded[1]).toBeCloseTo(-1.0, 5);
+  });
+
+  it('treats NaN and ±Infinity as silence', () => {
+    const input = new Float32Array([NaN, Infinity, -Infinity, 0]);
+    const decoded = pcm16Base64ToFloat32(float32ToPcm16Base64(input));
+    expect(decoded[0]).toBe(0);
+    expect(decoded[1]).toBe(0);
+    expect(decoded[2]).toBe(0);
+    expect(decoded[3]).toBe(0);
   });
 
   it('handles empty input', () => {

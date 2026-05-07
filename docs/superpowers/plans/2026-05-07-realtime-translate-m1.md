@@ -39,6 +39,7 @@
 - `types.ts` — shared types (Language, SessionState, IPCEvent)
 - `events.ts` — IPC channel name constants
 - `languages.ts` — language list (PT, EN, plus a few common pairs)
+- `util/pcmCodec.ts` — PCM16 ↔ base64 (used by offscreen renderer; platform-neutral btoa/atob)
 
 ### Main process (`src/main/`)
 - `app.ts` — Electron entry, creates windows, wires IPC
@@ -50,7 +51,6 @@
 - `translate/audioPipeline.ts` — wires capture → session → playback (M1: 1 direction only)
 - `ipc/channels.ts` — channel name constants + payload types
 - `ipc/handlers.ts` — registers ipcMain handlers
-- `util/pcmCodec.ts` — PCM16 ↔ base64
 - `util/retryPolicy.ts` — exponential backoff iterator
 - `util/logger.ts` — structured JSONL logger
 
@@ -395,16 +395,18 @@ git commit -m "Add vitest test infrastructure"
 ## Task 3: pcmCodec utility (TDD)
 
 **Files:**
-- Create: `src/main/util/pcmCodec.ts`, `tests/unit/pcmCodec.test.ts`
+- Create: `src/shared/util/pcmCodec.ts`, `tests/unit/pcmCodec.test.ts`
 
 The OpenAI realtime translation API expects audio as base64-encoded PCM16 little-endian at 24kHz mono. Web Audio gives us Float32 samples; we need to convert.
+
+This lives in `src/shared/util/` (not `src/main/util/`) because the offscreen renderer (`src/offscreen/webAudioBridge.ts`) imports it. That renderer runs with `nodeIntegration: false`, so Node's `Buffer` is undefined there — the implementation uses platform-neutral `btoa`/`atob` + `Uint8Array` (available in both Node ≥16 and browsers/Electron renderers).
 
 - [ ] **Step 1: Write failing tests**
 
 `tests/unit/pcmCodec.test.ts`:
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { float32ToPcm16Base64, pcm16Base64ToFloat32 } from '@main/util/pcmCodec';
+import { float32ToPcm16Base64, pcm16Base64ToFloat32 } from '@shared/util/pcmCodec';
 
 describe('pcmCodec', () => {
   it('encodes a known Float32 sample to PCM16 base64', () => {
@@ -435,8 +437,17 @@ describe('pcmCodec', () => {
   it('clamps values outside [-1, 1]', () => {
     const input = new Float32Array([2.0, -2.0]);
     const decoded = pcm16Base64ToFloat32(float32ToPcm16Base64(input));
-    expect(decoded[0]).toBeCloseTo(0.99997, 3);
-    expect(decoded[1]).toBeCloseTo(-1.0, 3);
+    expect(decoded[0]).toBeCloseTo(1.0, 5);
+    expect(decoded[1]).toBeCloseTo(-1.0, 5);
+  });
+
+  it('treats NaN and ±Infinity as silence', () => {
+    const input = new Float32Array([NaN, Infinity, -Infinity, 0]);
+    const decoded = pcm16Base64ToFloat32(float32ToPcm16Base64(input));
+    expect(decoded[0]).toBe(0);
+    expect(decoded[1]).toBe(0);
+    expect(decoded[2]).toBe(0);
+    expect(decoded[3]).toBe(0);
   });
 
   it('handles empty input', () => {
@@ -456,10 +467,23 @@ Expected: FAIL — module not found.
 
 - [ ] **Step 3: Implement pcmCodec**
 
-`src/main/util/pcmCodec.ts`:
+`src/shared/util/pcmCodec.ts`:
 ```typescript
 const MAX_INT16 = 0x7fff;
 const MIN_INT16 = -0x8000;
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let s = '';
+  for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]!);
+  return btoa(s);
+}
+
+function base64ToBytes(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
 
 export function float32ToPcm16Base64(samples: Float32Array): string {
   if (samples.length === 0) return '';
@@ -467,18 +491,19 @@ export function float32ToPcm16Base64(samples: Float32Array): string {
   const view = new DataView(buf);
   for (let i = 0; i < samples.length; i++) {
     let s = samples[i]!;
-    if (s > 1) s = 1;
+    if (!Number.isFinite(s)) s = 0; // NaN, ±Infinity -> silence
+    else if (s > 1) s = 1;
     else if (s < -1) s = -1;
     const int16 = s < 0 ? s * -MIN_INT16 : s * MAX_INT16;
     view.setInt16(i * 2, Math.round(int16), true);
   }
-  return Buffer.from(buf).toString('base64');
+  return bytesToBase64(new Uint8Array(buf));
 }
 
 export function pcm16Base64ToFloat32(b64: string): Float32Array {
   if (b64 === '') return new Float32Array(0);
-  const buf = Buffer.from(b64, 'base64');
-  const view = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  const bytes = base64ToBytes(b64);
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const len = Math.floor(view.byteLength / 2);
   const out = new Float32Array(len);
   for (let i = 0; i < len; i++) {
@@ -495,12 +520,12 @@ export function pcm16Base64ToFloat32(b64: string): Float32Array {
 npm test -- pcmCodec
 ```
 
-Expected: 4 passing.
+Expected: 5 passing.
 
 - [ ] **Step 5: Commit**
 
 ```powershell
-git add src/main/util/pcmCodec.ts tests/unit/pcmCodec.test.ts
+git add src/shared/util/pcmCodec.ts tests/unit/pcmCodec.test.ts
 git commit -m "Add pcmCodec util for PCM16 base64 conversion (TDD)"
 ```
 
@@ -1601,7 +1626,7 @@ registerProcessor('pcm-encoder', PcmEncoderProcessor);
 - [ ] **Step 3: Create src/offscreen/webAudioBridge.ts**
 
 ```typescript
-import { float32ToPcm16Base64, pcm16Base64ToFloat32 } from '../main/util/pcmCodec';
+import { float32ToPcm16Base64, pcm16Base64ToFloat32 } from '@shared/util/pcmCodec';
 
 export interface CaptureHandle {
   stop(): void;
