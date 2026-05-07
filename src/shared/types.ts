@@ -1,3 +1,5 @@
+import type { LanguageCode } from './languages';
+
 export type SessionState =
   | { kind: 'idle' }
   | { kind: 'connecting' }
@@ -11,6 +13,9 @@ export interface DeviceSummary {
   kind: 'audioinput' | 'audiooutput';
 }
 
+// Renderer-facing twin of the main-process CablePair from src/main/audio/deviceDetector.ts.
+// Uses DeviceSummary instead of DeviceInfo so this type can live in `shared` without pulling
+// in main-only code. Main process maps DeviceInfo -> DeviceSummary at the IPC boundary.
 export interface DeviceInventory {
   inputs: DeviceSummary[];
   outputs: DeviceSummary[];
@@ -19,8 +24,8 @@ export interface DeviceInventory {
 }
 
 export interface StartTranslationArgs {
-  sourceLang: string;
-  targetLang: string;
+  sourceLang: LanguageCode;
+  targetLang: LanguageCode;
   micDeviceId: string;
   outputDeviceId: string; // M1: target playback (cable A or test speaker)
 }

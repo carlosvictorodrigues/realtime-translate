@@ -1,9 +1,11 @@
+export type LanguageCode = 'pt' | 'en' | 'es' | 'fr' | 'de' | 'it' | 'ja' | 'zh';
+
 export interface Language {
-  code: string;
+  code: LanguageCode;
   label: string;
 }
 
-export const LANGUAGES: Language[] = [
+export const LANGUAGES: readonly Language[] = [
   { code: 'pt', label: 'Português' },
   { code: 'en', label: 'English' },
   { code: 'es', label: 'Español' },
@@ -16,4 +18,8 @@ export const LANGUAGES: Language[] = [
 
 export function languageByCode(code: string): Language | undefined {
   return LANGUAGES.find((l) => l.code === code);
+}
+
+export function isLanguageCode(code: string): code is LanguageCode {
+  return LANGUAGES.some((l) => l.code === code);
 }
