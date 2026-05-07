@@ -1723,7 +1723,7 @@ declare global {
       listDevices(): Promise<{ deviceId: string; label: string; kind: string }[]>;
       startCapture(micDeviceId: string): Promise<void>;
       startPlayback(outDeviceId: string): Promise<void>;
-      pushAudio(base64: string): void;
+      pushPlayback(base64: string): void;
       stopAll(): void;
     };
   }
@@ -1748,7 +1748,7 @@ window.offscreen = {
     playback?.stop();
     playback = await startPlayback(outDeviceId);
   },
-  pushAudio(base64) {
+  pushPlayback(base64) {
     playback?.push(base64);
   },
   stopAll() {
@@ -2308,7 +2308,7 @@ class OffscreenBridge implements OffscreenController {
     );
   }
   pushPlayback(b64: string): void {
-    this.window.webContents.send('offscreen:pushAudio', b64);
+    this.window.webContents.send('offscreen:pushPlayback', b64);
   }
   stopAll(): void {
     this.window.webContents.executeJavaScript('window.offscreen.stopAll()').catch(() => undefined);
@@ -2456,7 +2456,7 @@ app.on('window-all-closed', () => {
 });
 ```
 
-- [ ] **Step 2: Update offscreen index.ts to wire pushAudio over IPC**
+- [ ] **Step 2: Update offscreen index.ts to wire pushPlayback over IPC**
 
 Edit `src/offscreen/index.ts`. Replace the `window.addEventListener('message', ...)` block (added in Task 10 step 4) with a call to `ipcRenderer.on`:
 
@@ -2466,8 +2466,8 @@ Replace lines starting with `// Expose pcm listener registration to main via pos
 import { ipcRenderer } from 'electron';
 
 // Forward outbound audio from main to playback.
-ipcRenderer.on('offscreen:pushAudio', (_e, b64: string) => {
-  window.offscreen.pushAudio(b64);
+ipcRenderer.on('offscreen:pushPlayback', (_e, b64: string) => {
+  window.offscreen.pushPlayback(b64);
 });
 
 // Forward captured PCM chunks back to main.

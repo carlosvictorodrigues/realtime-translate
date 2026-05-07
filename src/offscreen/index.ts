@@ -57,6 +57,14 @@ window.offscreen = {
 };
 
 // Wire incoming-from-main playback chunks to the playback handle.
-window.offscreenBridge?.onPushPlayback((base64) => {
-  window.offscreen.pushPlayback(base64);
-});
+// Contract: Task 14's preload script must run BEFORE this module (Electron's
+// default preload-runs-first behavior) and install `window.offscreenBridge`.
+// If it's missing here, the IPC bridge is broken — fail loud rather than silently no-op.
+if (!window.offscreenBridge) {
+  // eslint-disable-next-line no-console
+  console.error('OffscreenBridge not installed. Did the preload script run? Captured audio will not reach main process.');
+} else {
+  window.offscreenBridge.onPushPlayback((base64) => {
+    window.offscreen.pushPlayback(base64);
+  });
+}
