@@ -1586,6 +1586,8 @@ git add src/main/translate/openaiSession.ts tests/unit/openaiSession.test.ts
 git commit -m "Add OpenAISession with WebSocket lifecycle (TDD)"
 ```
 
+> **Implementation note (post-execution):** Task 9 actually shipped as two commits — **9a** (this section: basic lifecycle, 7 tests, commit `4eb7449`) and **9b** (a follow-up applying code review of 9a). 9b wired in `ExponentialBackoff` for unexpected-close reconnect (default 1s/30s/5 attempts per spec §7), routed server-side `{type:'error'}` events to error state, cleared `pendingAudio` on `stop()`, capped `pendingAudio` at 200 chunks (~10s @ 50ms framing) to prevent unbounded growth on slow connect, and added a `console.warn` for malformed JSON messages (without leaking transcript content). See `src/main/translate/openaiSession.ts` and `tests/unit/openaiSession.test.ts` (15 tests total) for the final implementation; the 9b commit is the most recent change to those two files.
+
 ---
 
 ## Task 10: Offscreen renderer scaffold + AudioWorklet

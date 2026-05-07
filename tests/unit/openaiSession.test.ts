@@ -176,4 +176,240 @@ describe('OpenAISession', () => {
     expect(JSON.parse(ws.sent[1]!).audio).toBe('chunk1');
     expect(JSON.parse(ws.sent[2]!).audio).toBe('chunk2');
   });
+
+  // ---------- Task 9b: reconnect + cleanup ----------
+
+  it('unexpected close schedules reconnect with delay (emits reconnecting)', () => {
+    vi.useFakeTimers();
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+        backoff: { baseMs: 100, maxMs: 1000, maxAttempts: 5 },
+      });
+      session.start();
+      const ws1 = FakeWebSocket.instances[0]!;
+      ws1.simulateOpen();
+
+      // Simulate unexpected close (server side) — readyState->3, onclose fires.
+      ws1.close(1006, 'abnormal');
+
+      // Should have emitted 'reconnecting' with attempt 1.
+      expect(onState).toHaveBeenCalledWith({ kind: 'reconnecting', attempt: 1 });
+
+      // No new socket yet — still waiting on the timer.
+      expect(FakeWebSocket.instances).toHaveLength(1);
+
+      // Advance time past first delay (100ms).
+      vi.advanceTimersByTime(100);
+
+      // Reconnect attempted: a new socket exists.
+      expect(FakeWebSocket.instances).toHaveLength(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reconnect success restores active state and resets backoff', () => {
+    vi.useFakeTimers();
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+        backoff: { baseMs: 100, maxMs: 1000, maxAttempts: 5 },
+      });
+      session.start();
+      const ws1 = FakeWebSocket.instances[0]!;
+      ws1.simulateOpen();
+      ws1.close(1006, 'abnormal');
+      vi.advanceTimersByTime(100);
+
+      const ws2 = FakeWebSocket.instances[1]!;
+      ws2.simulateOpen();
+
+      // Last state should be active again.
+      expect(onState).toHaveBeenLastCalledWith(expect.objectContaining({ kind: 'active' }));
+
+      // After reconnect success, drop ws2 unexpectedly. Backoff should have reset
+      // so the next attempt counter starts at 1 again.
+      onState.mockClear();
+      ws2.close(1006, 'abnormal');
+      expect(onState).toHaveBeenCalledWith({ kind: 'reconnecting', attempt: 1 });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stop() while reconnecting cancels the pending timer', () => {
+    vi.useFakeTimers();
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+        backoff: { baseMs: 100, maxMs: 1000, maxAttempts: 5 },
+      });
+      session.start();
+      const ws1 = FakeWebSocket.instances[0]!;
+      ws1.simulateOpen();
+      ws1.close(1006, 'abnormal');
+      // We are now in 'reconnecting' state with a pending timer.
+      expect(onState).toHaveBeenCalledWith({ kind: 'reconnecting', attempt: 1 });
+
+      // User stops the session before reconnect timer fires.
+      session.stop();
+
+      // Advance past delay — no new socket should be created.
+      vi.advanceTimersByTime(500);
+      expect(FakeWebSocket.instances).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('reconnect attempts exhausted emits final error', () => {
+    vi.useFakeTimers();
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+        backoff: { baseMs: 10, maxMs: 100, maxAttempts: 2 },
+      });
+      session.start();
+
+      // Open succeeds once, then a close-without-reopen sequence drains all
+      // reconnect attempts. We do NOT call simulateOpen between retries —
+      // a successful open would reset backoff and defeat the test.
+      const ws1 = FakeWebSocket.instances[0]!;
+      ws1.simulateOpen();
+      ws1.close(1006, 'abnormal'); // attempt 1 scheduled
+      vi.advanceTimersByTime(10);
+
+      const ws2 = FakeWebSocket.instances[1]!;
+      // Don't open ws2 — close it while still connecting, simulating a failed retry.
+      ws2.close(1006, 'abnormal'); // attempt 2 scheduled
+      vi.advanceTimersByTime(20);
+
+      const ws3 = FakeWebSocket.instances[2]!;
+      ws3.close(1006, 'abnormal'); // attempts exhausted
+
+      expect(onState).toHaveBeenCalledWith(
+        expect.objectContaining({ kind: 'error', message: expect.stringMatching(/reconnect attempts exhausted/i) })
+      );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('routes server-side {type:"error"} events to error state without reconnect', () => {
+    vi.useFakeTimers();
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+        backoff: { baseMs: 50, maxMs: 500, maxAttempts: 5 },
+      });
+      session.start();
+      const ws = FakeWebSocket.instances[0]!;
+      ws.simulateOpen();
+
+      ws.simulateMessage({ type: 'error', error: { message: 'invalid_session_config' } });
+      expect(onState).toHaveBeenCalledWith({ kind: 'error', message: 'invalid_session_config' });
+
+      // Even if the socket then closes, no reconnect is attempted.
+      onState.mockClear();
+      ws.close(1006, 'abnormal');
+      vi.advanceTimersByTime(2000);
+      // No second socket spun up.
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      // No 'reconnecting' state emitted.
+      expect(onState).not.toHaveBeenCalledWith(expect.objectContaining({ kind: 'reconnecting' }));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('stop() clears pendingAudio so stale chunks do not leak across sessions', () => {
+    const session = new OpenAISession({
+      apiKey: 'sk',
+      sourceLang: 'pt',
+      targetLang: 'en',
+      events,
+      wsFactory: fakeFactory,
+    });
+    session.start();
+    // Buffer some audio before open.
+    session.appendAudio('stale-1');
+    session.appendAudio('stale-2');
+    // Stop before connection ever opens.
+    session.stop();
+
+    // Now start a fresh session.
+    session.start();
+    const ws2 = FakeWebSocket.instances[1]!;
+    ws2.simulateOpen();
+    // Only session.update should have been sent — no leaked stale chunks.
+    expect(ws2.sent).toHaveLength(1);
+    expect(JSON.parse(ws2.sent[0]!).type).toBe('session.update');
+  });
+
+  it('pendingAudio is bounded — drops oldest after cap', () => {
+    const session = new OpenAISession({
+      apiKey: 'sk',
+      sourceLang: 'pt',
+      targetLang: 'en',
+      events,
+      wsFactory: fakeFactory,
+    });
+    session.start();
+    // Push 205 chunks before open. Cap is 200.
+    for (let i = 0; i < 205; i++) {
+      session.appendAudio(`chunk-${i}`);
+    }
+    const ws = FakeWebSocket.instances[0]!;
+    ws.simulateOpen();
+    // session.update + 200 buffered chunks (oldest 5 dropped).
+    expect(ws.sent).toHaveLength(1 + 200);
+    // First buffered chunk should be chunk-5 (chunk-0..chunk-4 dropped).
+    expect(JSON.parse(ws.sent[1]!).audio).toBe('chunk-5');
+    expect(JSON.parse(ws.sent[200]!).audio).toBe('chunk-204');
+  });
+
+  it('warns on malformed JSON messages instead of silently dropping', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+      });
+      session.start();
+      const ws = FakeWebSocket.instances[0]!;
+      ws.simulateOpen();
+      // Manually invoke onmessage with invalid JSON — bypass simulateMessage.
+      ws.onmessage?.('not-valid-json{{{');
+      expect(warnSpy).toHaveBeenCalled();
+      // Sanity: warning string must NOT include the raw payload (no transcript leak).
+      const argText = warnSpy.mock.calls.map((call) => String(call[0])).join(' ');
+      expect(argText).not.toContain('not-valid-json');
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
 });

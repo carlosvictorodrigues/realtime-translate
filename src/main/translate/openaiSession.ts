@@ -1,5 +1,6 @@
 import type { SessionState } from '../../shared/types';
 import type { LanguageCode } from '../../shared/languages';
+import { ExponentialBackoff, type BackoffConfig } from '../util/retryPolicy';
 
 export interface WebSocketLike {
   readonly readyState: number;
@@ -26,18 +27,75 @@ export interface OpenAISessionConfig {
   events: SessionEvents;
   wsFactory: WebSocketFactory;
   voice?: string;
+  /** Reconnect policy (spec §7). Default: 1s base / 30s cap / 5 attempts. */
+  backoff?: BackoffConfig;
 }
 
 const ENDPOINT = 'wss://api.openai.com/v1/realtime/translations?model=gpt-realtime-translate';
+const DEFAULT_BACKOFF: BackoffConfig = { baseMs: 1000, maxMs: 30000, maxAttempts: 5 };
+/** Cap on pre-connect audio buffer (~10s @ 50ms framing). */
+const MAX_PENDING_AUDIO = 200;
 
 export class OpenAISession {
   private ws?: WebSocketLike;
   private isOpen = false;
   private pendingAudio: string[] = [];
+  private readonly backoff: ExponentialBackoff;
+  private reconnectTimer: ReturnType<typeof setTimeout> | undefined = undefined;
+  /** True between user-initiated stop() and the next user-initiated start(). */
+  private userStopped = false;
+  /** True after a server-side {type:'error'} — disables reconnect on subsequent close. */
+  private serverError = false;
+  /** User-visible reconnect attempt counter. Resets on successful (re)open and on start(). */
+  private attemptCount = 0;
 
-  constructor(private readonly cfg: OpenAISessionConfig) {}
+  constructor(private readonly cfg: OpenAISessionConfig) {
+    this.backoff = new ExponentialBackoff(cfg.backoff ?? DEFAULT_BACKOFF);
+  }
 
+  /**
+   * User-initiated session start. Resets reconnect state and opens a fresh socket.
+   * Internal reconnects use {@link connect} directly to preserve backoff progression.
+   */
   start(): void {
+    this.userStopped = false;
+    this.serverError = false;
+    this.backoff.reset();
+    this.attemptCount = 0;
+    this.connect();
+  }
+
+  appendAudio(base64: string): void {
+    if (!this.isOpen) {
+      // Bound the pre-connect buffer — drop oldest on overflow (M1).
+      if (this.pendingAudio.length >= MAX_PENDING_AUDIO) {
+        this.pendingAudio.shift();
+        // eslint-disable-next-line no-console
+        console.warn('OpenAISession: pending audio buffer overflow, dropping oldest');
+      }
+      this.pendingAudio.push(base64);
+      return;
+    }
+    this.sendRaw({ type: 'session.input_audio_buffer.append', audio: base64 });
+  }
+
+  stop(): void {
+    this.userStopped = true;
+    // Cancel any pending reconnect (I1 + cancellation correctness).
+    if (this.reconnectTimer !== undefined) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+    // Drop any buffered audio so a future start() doesn't replay stale chunks (I1).
+    this.pendingAudio = [];
+    if (this.ws && !this.isClosed()) {
+      this.ws.close(1000, 'client stop');
+    }
+    this.cfg.events.onState({ kind: 'idle' });
+  }
+
+  /** Open a WebSocket without resetting reconnect state. Used by start() and reconnect. */
+  private connect(): void {
     this.cfg.events.onState({ kind: 'connecting' });
     this.ws = this.cfg.wsFactory(ENDPOINT, {
       Authorization: `Bearer ${this.cfg.apiKey}`,
@@ -49,23 +107,11 @@ export class OpenAISession {
     this.ws.onerror = (err) => this.handleError(err);
   }
 
-  appendAudio(base64: string): void {
-    if (!this.isOpen) {
-      this.pendingAudio.push(base64);
-      return;
-    }
-    this.sendRaw({ type: 'session.input_audio_buffer.append', audio: base64 });
-  }
-
-  stop(): void {
-    if (this.ws && !this.isClosed()) {
-      this.ws.close(1000, 'client stop');
-    }
-    this.cfg.events.onState({ kind: 'idle' });
-  }
-
   private handleOpen(): void {
     this.isOpen = true;
+    // Successful (re)connect — reset backoff so next failure starts fresh.
+    this.backoff.reset();
+    this.attemptCount = 0;
     this.sendRaw({
       type: 'session.update',
       session: {
@@ -91,6 +137,9 @@ export class OpenAISession {
     try {
       event = JSON.parse(raw);
     } catch {
+      // M4: best-effort warning. Don't include the raw payload — could leak transcript.
+      // eslint-disable-next-line no-console
+      console.warn('OpenAISession: malformed message ignored');
       return;
     }
     if (event.type === 'session.output_audio.delta' && event.delta) {
@@ -99,15 +148,40 @@ export class OpenAISession {
       this.cfg.events.onTranscript({ kind: 'input', text: event.delta });
     } else if (event.type === 'session.output_transcript.delta' && event.delta) {
       this.cfg.events.onTranscript({ kind: 'output', text: event.delta });
+    } else if (event.type === 'error') {
+      // I2: server-side fatal. Don't reconnect — server explicitly rejected.
+      const msg =
+        (event as { error?: { message?: string } }).error?.message ?? 'OpenAI server error';
+      this.serverError = true;
+      this.cfg.events.onState({ kind: 'error', message: msg });
     }
   }
 
   private handleClose(_code: number, _reason: string): void {
     this.isOpen = false;
+    // User-initiated stop or server-rejected session: do not reconnect.
+    if (this.userStopped || this.serverError) return;
+    this.scheduleReconnect();
   }
 
   private handleError(err: Error): void {
     this.cfg.events.onState({ kind: 'error', message: err.message });
+  }
+
+  private scheduleReconnect(): void {
+    if (!this.backoff.hasNext()) {
+      this.cfg.events.onState({ kind: 'error', message: 'reconnect attempts exhausted' });
+      return;
+    }
+    const delay = this.backoff.next();
+    this.attemptCount += 1;
+    this.cfg.events.onState({ kind: 'reconnecting', attempt: this.attemptCount });
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      // Re-check stop flag at fire time in case stop() raced past the check above.
+      if (this.userStopped || this.serverError) return;
+      this.connect();
+    }, delay);
   }
 
   private sendRaw(payload: object): void {
