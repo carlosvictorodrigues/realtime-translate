@@ -924,19 +924,27 @@ export function detectVirtualCables(devices: DeviceInfo[]): DetectionResult {
   const cableBPlayback = findOne('audiooutput', B_PLAYBACK);
   const cableBRecording = findOne('audioinput', B_RECORDING);
 
-  const cableA =
-    cableAPlayback || cableARecording
-      ? { playback: cableAPlayback, recording: cableARecording }
-      : undefined;
-  const cableB =
-    cableBPlayback || cableBRecording
-      ? { playback: cableBPlayback, recording: cableBRecording }
-      : undefined;
+  const buildPair = (
+    playback: DeviceInfo | undefined,
+    recording: DeviceInfo | undefined,
+  ): CablePair | undefined => {
+    if (!playback && !recording) return undefined;
+    return {
+      ...(playback ? { playback } : {}),
+      ...(recording ? { recording } : {}),
+    };
+  };
+
+  const cableA = buildPair(cableAPlayback, cableARecording);
+  const cableB = buildPair(cableBPlayback, cableBRecording);
 
   const inputs = devices.filter((d) => d.kind === 'audioinput' && !ANY_VIRTUAL.test(d.label));
   const outputs = devices.filter((d) => d.kind === 'audiooutput' && !ANY_VIRTUAL.test(d.label));
 
-  return { cableA, cableB, realDevices: { inputs, outputs } };
+  const result: DetectionResult = { realDevices: { inputs, outputs } };
+  if (cableA) result.cableA = cableA;
+  if (cableB) result.cableB = cableB;
+  return result;
 }
 ```
 
