@@ -414,10 +414,10 @@ describe('pcmCodec', () => {
 
     // Manually computed expected:
     // 0    -> 0x0000      -> bytes 00 00
-    // 0.5  -> 16383       -> bytes FF 3F (little endian)
+    // 0.5  -> 16384       -> bytes 00 40 (little endian, 0.5 * 32767 = 16383.5 rounds up)
     // -0.5 -> -16384      -> bytes 00 C0
     // 1.0  -> 32767       -> bytes FF 7F
-    const expectedBytes = new Uint8Array([0x00, 0x00, 0xff, 0x3f, 0x00, 0xc0, 0xff, 0x7f]);
+    const expectedBytes = new Uint8Array([0x00, 0x00, 0x00, 0x40, 0x00, 0xc0, 0xff, 0x7f]);
     const expected = Buffer.from(expectedBytes).toString('base64');
     expect(result).toBe(expected);
   });
