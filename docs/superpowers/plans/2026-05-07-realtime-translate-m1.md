@@ -123,7 +123,7 @@ Then **replace** `package.json` with this content:
 - [ ] **Step 2: Install dev dependencies**
 
 ```powershell
-npm i -D electron@^33 electron-vite@^2 vite@^6 typescript@^5 @types/node @types/ws ws react@^19 react-dom@^19 @types/react @types/react-dom zustand vitest @vitest/coverage-v8 @playwright/test eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin prettier eslint-config-prettier eslint-plugin-react eslint-plugin-react-hooks lucide-react
+npm i -D electron@^33 electron-vite@^4 vite@^6 typescript@^5 @types/node @types/ws ws react@^19 react-dom@^19 @types/react @types/react-dom zustand vitest @vitest/coverage-v8 @playwright/test eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin prettier eslint-config-prettier eslint-plugin-react eslint-plugin-react-hooks lucide-react @vitejs/plugin-react@^5
 ```
 
 - [ ] **Step 3: Create base tsconfig.json**
