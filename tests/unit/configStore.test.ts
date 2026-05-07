@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ConfigStore, type SafeStorage, type FileSystem } from '@main/config/configStore';
 
 class FakeSafeStorage implements SafeStorage {
@@ -63,9 +63,13 @@ describe('ConfigStore', () => {
   });
 
   it('stored key takes precedence over env var', () => {
-    process.env.OPENAI_API_KEY = 'sk-env';
+    vi.stubEnv('OPENAI_API_KEY', 'sk-env');
     store.setApiKey('sk-stored');
     expect(store.getApiKey()).toBe('sk-stored');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('clearApiKey removes stored key', () => {

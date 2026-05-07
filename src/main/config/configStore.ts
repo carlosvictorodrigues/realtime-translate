@@ -14,6 +14,7 @@ export interface ConfigStoreDeps {
   safeStorage: SafeStorage;
   fs: FileSystem;
   configPath: string;
+  /** Snapshot of OPENAI_API_KEY at app startup; not re-read after construction. */
   envApiKey: string | undefined;
 }
 
@@ -43,6 +44,7 @@ export class ConfigStore {
   }
 
   clearApiKey(): void {
+    // Truncate file to zero bytes; DPAPI ciphertext slack is meaningless without user creds.
     this.deps.fs.writeFile(this.deps.configPath, Buffer.alloc(0));
   }
 }
