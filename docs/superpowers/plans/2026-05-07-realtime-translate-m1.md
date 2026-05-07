@@ -120,10 +120,13 @@ Then **replace** `package.json` with this content:
 }
 ```
 
-- [ ] **Step 2: Install dev dependencies**
+- [ ] **Step 2: Install dependencies**
+
+`ws` is a runtime dep (used by main process at runtime, externalized from bundle); rest are dev deps. ESLint pinned to `^8` because v9 dropped `.eslintrc.*` support and migrating to flat config is out of scope here. `eslint-plugin-react-hooks` pinned to `^4` (v7 requires eslint v9). Electron pinned to `^42` (earlier majors have unpatched UAF in offscreen-window paint callback — directly relevant to our architecture).
 
 ```powershell
-npm i -D electron@^33 electron-vite@^4 vite@^6 typescript@^5 @types/node @types/ws ws react@^19 react-dom@^19 @types/react @types/react-dom zustand vitest @vitest/coverage-v8 @playwright/test eslint @typescript-eslint/parser @typescript-eslint/eslint-plugin prettier eslint-config-prettier eslint-plugin-react eslint-plugin-react-hooks lucide-react @vitejs/plugin-react@^5
+npm i ws@^8
+npm i -D electron@^42 electron-vite@^4 vite@^6 typescript@^5 @types/node@^22 @types/ws react@^19 react-dom@^19 @types/react @types/react-dom zustand vitest @vitest/coverage-v8 @playwright/test eslint@^8 @typescript-eslint/parser @typescript-eslint/eslint-plugin prettier eslint-config-prettier eslint-plugin-react eslint-plugin-react-hooks@^4 lucide-react @vitejs/plugin-react@^5
 ```
 
 - [ ] **Step 3: Create base tsconfig.json**
