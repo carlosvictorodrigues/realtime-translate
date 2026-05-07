@@ -403,20 +403,34 @@ Nenhum teste depende da OpenAI ou de hardware real, exceto o smoke manual. Contr
 7. **Microcopy terso e confiante.** "Iniciar tradução", não "Clique aqui pra começar a traduzir agora!".
 8. **Dark mode primeiro.** Light como segunda opção.
 
-### Paleta proposta (a refinar na implementação)
+### Paleta (cravada — referência: `docs/design/design-system.html`)
 
 ```
-Background base       #0a0a0a / #fafafa (dark / light)
-Surface               #141414 / #ffffff
-Surface elevated      #1c1c1c / #f4f4f4
-Border subtle         #262626 / #e5e5e5
-Text primary          #f4f4f4 / #0a0a0a
-Text secondary        #a3a3a3 / #737373
-Text tertiary         #737373 / #a3a3a3
-Accent                a definir — um tom só (azul/verde/cyan suave)
-Warning               âmbar discreto
-Error                 vermelho sóbrio
+Canvas                #08090a   /* fundo da janela */
+Background base       #0a0a0b   /* base da app */
+Surface               #131517   /* cards, widget body */
+Surface elevated      #1a1d20   /* hover de surface */
+Surface overlay       #202428   /* hover de surface elevated */
+Border subtle         #1f2226   /* divisores discretos */
+Border default        #2a2e34   /* contorno de input/button */
+Border strong         #3a3f47   /* contorno em focus */
+
+Text primary          #f4f4f5
+Text secondary        #a1a1aa
+Text tertiary         #71717a
+Text quaternary       #52525b
+
+Accent                #6e7fc4   /* Indigo muted — opção A */
+Accent hover          #8290d0
+Accent muted          rgba(110, 127, 196, 0.14)   /* highlights, focus rings */
+Accent border         rgba(110, 127, 196, 0.32)
+
+Success               #4ade80
+Warning               #f59e0b
+Error                 #f87171
 ```
+
+**Light mode:** fora do MVP. Adicionar como follow-up se houver demanda.
 
 ### Spacing
 
@@ -565,10 +579,9 @@ Explicitamente fora do MVP:
 A decidir durante implementação:
 
 - **State store** (Zustand recomendado, mas pode ser Valtio)
-- **Bibliotecas de ícones** (Lucide ou Phosphor — ambas combinam com design language)
+- **Bibliotecas de ícones** (Lucide preferida — alinhada com Linear/Tailwind aesthetic)
 - **Estratégia de auto-update** (electron-updater) — implementação fora do MVP
 - **Code signing** — depende de cert disponível
-- **Tom exato do accent color** — refinar com mockups
 
 ---
 

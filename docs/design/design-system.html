@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Realtime Translate — Design System</title>
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+  :root {
+    --bg-base: #0a0a0b;
+    --bg-canvas: #08090a;
+    --surface: #131517;
+    --surface-elevated: #1a1d20;
+    --surface-overlay: #202428;
+    --border-subtle: #1f2226;
+    --border-default: #2a2e34;
+    --border-strong: #3a3f47;
+
+    --text-primary: #f4f4f5;
+    --text-secondary: #a1a1aa;
+    --text-tertiary: #71717a;
+    --text-quaternary: #52525b;
+
+    --accent: #6e7fc4;
+    --accent-hover: #8290d0;
+    --accent-muted: rgba(110, 127, 196, 0.14);
+    --accent-border: rgba(110, 127, 196, 0.32);
+
+    --success: #4ade80;
+    --warning: #f59e0b;
+    --error: #f87171;
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+    --radius-xl: 12px;
+
+    --shadow-widget: 0 1px 2px rgba(0,0,0,0.2), 0 12px 32px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.05);
+
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg-canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+
+  body {
+    padding: 48px 32px 96px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .doc-header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 48px;
+  }
+
+  .doc-header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .doc-header p {
+    color: var(--text-secondary);
+    font-size: 15px;
+  }
+
+  section { margin-bottom: 64px; }
+
+  section > h2 {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section > h2::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-subtle);
+  }
+
+  /* ===== Color tokens ===== */
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+  }
+  .swatch {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+  }
+  .swatch-color {
+    height: 56px;
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    border: 1px solid var(--border-subtle);
+  }
+  .swatch-name { font-size: 13px; font-weight: 500; }
+  .swatch-value {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: 2px;
+  }
+
+  /* ===== Typography ===== */
+  .type-row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 24px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: baseline;
+  }
+  .type-row:last-child { border-bottom: 0; }
+  .type-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .type-display { color: var(--text-primary); }
+  .type-h1 { font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+  .type-h2 { font-size: 20px; font-weight: 600; letter-spacing: -0.015em; }
+  .type-h3 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+  .type-body { font-size: 14px; }
+  .type-small { font-size: 13px; color: var(--text-secondary); }
+  .type-caption { font-size: 11px; color: var(--text-tertiary); letter-spacing: 0.04em; text-transform: uppercase; }
+
+  /* ===== Components ===== */
+  .components-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+    gap: 16px;
+  }
+  .component-card {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+  }
+  .component-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+  }
+  .component-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    padding: 7px 14px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-secondary {
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    border-color: var(--border-default);
+  }
+  .btn-secondary:hover { background: var(--surface-overlay); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+  }
+  .btn-ghost:hover { background: var(--surface-elevated); color: var(--text-primary); }
+  .btn-danger {
+    background: transparent;
+    color: var(--error);
+    border-color: rgba(248, 113, 113, 0.3);
+  }
+  .btn-danger:hover { background: rgba(248, 113, 113, 0.08); }
+
+  /* Status badge */
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: 99px;
+  }
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+  }
+  .status-active .status-dot { background: var(--success); box-shadow: 0 0 8px rgba(74, 222, 128, 0.5); }
+  .status-active { color: var(--text-primary); }
+  .status-connecting .status-dot { background: var(--warning); }
+  .status-connecting { color: var(--text-primary); }
+  .status-error .status-dot { background: var(--error); }
+  .status-error { color: var(--error); border-color: rgba(248, 113, 113, 0.3); }
+
+  @keyframes pulse-ring {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0); }
+  }
+  .status-reconnecting .status-dot { background: var(--warning); animation: pulse-ring 1.4s ease-out infinite; }
+
+  /* Inputs */
+  .input {
+    background: var(--bg-base);
+    border: 1px solid var(--border-default);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: var(--radius-md);
+    width: 100%;
+    transition: border-color 120ms ease;
+  }
+  .input:focus {
+    outline: none;
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-muted);
+  }
+
+  /* Select-like (language pair) */
+  .lang-pair {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: 2px;
+  }
+  .lang-pair > .lang {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-primary);
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .lang-pair > .lang:hover { background: var(--surface-elevated); }
+  .lang-divider {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    padding: 0 2px;
+  }
+
+  /* Latency meter */
+  .latency {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .latency-bar {
+    width: 28px;
+    height: 4px;
+    background: var(--border-default);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .latency-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 60%;
+    background: var(--success);
+    border-radius: 2px;
+  }
+
+  /* ===== FloatingWidget ===== */
+  .widget-showcase {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 32px;
+    align-items: start;
+  }
+  .widget-frame {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .widget-frame .frame-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .widget {
+    width: 308px;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-widget);
+    overflow: hidden;
+    user-select: none;
+  }
+  .widget-titlebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px 8px 14px;
+    -webkit-app-region: drag;
+    height: 32px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .widget-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+  }
+  .widget-controls {
+    display: flex;
+    gap: 2px;
+    -webkit-app-region: no-drag;
+  }
+  .icon-btn {
+    width: 22px; height: 22px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+  }
+  .icon-btn:hover { background: var(--surface-elevated); color: var(--text-primary); }
+  .icon-btn svg { width: 13px; height: 13px; }
+
+  .widget-body { padding: 16px; }
+
+  .widget-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .widget-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    justify-content: center;
+  }
+  .widget-action:hover { background: var(--accent-hover); }
+  .widget-action.stop {
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+  .widget-action.stop:hover { background: var(--surface-elevated); border-color: rgba(248, 113, 113, 0.3); color: var(--error); }
+  .widget-action svg { width: 14px; height: 14px; }
+
+  .widget-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .widget-meta-toggle {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+  }
+  .widget-meta-toggle:hover { color: var(--text-primary); }
+  .widget-meta-toggle svg { width: 11px; height: 11px; }
+
+  /* Transcript expanded */
+  .widget.expanded {
+    width: 420px;
+  }
+  .transcript {
+    padding: 0 16px 16px;
+    border-top: 1px solid var(--border-subtle);
+    margin-top: -1px;
+    padding-top: 12px;
+    font-size: 12px;
+    line-height: 1.55;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .transcript-section { margin-bottom: 12px; }
+  .transcript-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .transcript-label .lang-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    background: var(--surface-elevated);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .transcript-text { color: var(--text-secondary); }
+  .transcript-text .live {
+    color: var(--text-primary);
+    background: var(--accent-muted);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  /* ===== SetupView ===== */
+  .setup-window {
+    width: 640px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-widget);
+    overflow: hidden;
+  }
+  .setup-titlebar {
+    height: 36px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    -webkit-app-region: drag;
+  }
+  .setup-title {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .setup-body { padding: 32px; }
+  .setup-heading {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-bottom: 4px;
+  }
+  .setup-sub {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-bottom: 24px;
+  }
+
+  .check-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 14px;
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+  }
+  .check-icon {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+  .check-ok { background: rgba(74, 222, 128, 0.12); color: var(--success); }
+  .check-pending { background: var(--surface-elevated); color: var(--text-tertiary); border: 1px solid var(--border-default); }
+  .check-warn { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+  .check-content { flex: 1; min-width: 0; }
+  .check-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .check-desc {
+    font-size: 12px;
+    color: var(--text-tertiary);
+  }
+  .check-action {
+    flex-shrink: 0;
+  }
+
+  .setup-divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 24px 0;
+  }
+
+  .setup-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* misc */
+  .annotations {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .accent-text { color: var(--accent); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-tertiary { color: var(--text-tertiary); }
+
+  /* Comparing accent options */
+  .accent-options {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+  .accent-option {
+    background: var(--surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    cursor: pointer;
+  }
+  .accent-option.selected {
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 1px var(--accent-border);
+  }
+  .accent-option .swatch-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .accent-option .sw {
+    flex: 1;
+    height: 36px;
+    border-radius: 4px;
+  }
+  .accent-option-name {
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+  .accent-option-desc {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="type-caption" style="color: var(--text-tertiary);">Realtime Translate</div>
+  <h1>Design System</h1>
+  <p>Premium, discreto, restrained. Referências: Linear, Raycast, Arc, Things 3.</p>
+</div>
+
+<!-- ============ COLOR TOKENS ============ -->
+<section>
+  <h2>Color tokens</h2>
+  <div class="swatches">
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--bg-canvas);"></div>
+      <div class="swatch-name">Canvas</div>
+      <div class="swatch-value">#08090a</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--bg-base);"></div>
+      <div class="swatch-name">Background</div>
+      <div class="swatch-value">#0a0a0b</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--surface);"></div>
+      <div class="swatch-name">Surface</div>
+      <div class="swatch-value">#131517</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--surface-elevated);"></div>
+      <div class="swatch-name">Surface elevated</div>
+      <div class="swatch-value">#1a1d20</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--accent);"></div>
+      <div class="swatch-name">Accent</div>
+      <div class="swatch-value">#6e7fc4</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--success);"></div>
+      <div class="swatch-name">Success</div>
+      <div class="swatch-value">#4ade80</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--warning);"></div>
+      <div class="swatch-name">Warning</div>
+      <div class="swatch-value">#f59e0b</div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background: var(--error);"></div>
+      <div class="swatch-name">Error</div>
+      <div class="swatch-value">#f87171</div>
+    </div>
+  </div>
+  <p class="annotations">Texto: <span style="color: var(--text-primary);">primary #f4f4f5</span> · <span style="color: var(--text-secondary);">secondary #a1a1aa</span> · <span style="color: var(--text-tertiary);">tertiary #71717a</span></p>
+</section>
+
+<!-- ============ ACCENT COMPARISON ============ -->
+<section>
+  <h2>Accent — opções pra você escolher</h2>
+  <div class="accent-options">
+    <div class="accent-option selected">
+      <div class="swatch-row">
+        <div class="sw" style="background: #6e7fc4;"></div>
+        <div class="sw" style="background: #8290d0; opacity: 0.6;"></div>
+        <div class="sw" style="background: rgba(110, 127, 196, 0.14);"></div>
+      </div>
+      <div class="accent-option-name">A · Indigo muted (atual)</div>
+      <div class="accent-option-desc">Calmo, técnico, neutro. Linear-ish.</div>
+    </div>
+    <div class="accent-option">
+      <div class="swatch-row">
+        <div class="sw" style="background: #5e6ad2;"></div>
+        <div class="sw" style="background: #7882db; opacity: 0.6;"></div>
+        <div class="sw" style="background: rgba(94, 106, 210, 0.14);"></div>
+      </div>
+      <div class="accent-option-name">B · Linear blue</div>
+      <div class="accent-option-desc">Cor exata do Linear. Seguro.</div>
+    </div>
+    <div class="accent-option">
+      <div class="swatch-row">
+        <div class="sw" style="background: #2dd4bf;"></div>
+        <div class="sw" style="background: #5eead4; opacity: 0.6;"></div>
+        <div class="sw" style="background: rgba(45, 212, 191, 0.14);"></div>
+      </div>
+      <div class="accent-option-name">C · Teal sóbrio</div>
+      <div class="accent-option-desc">Mais "fresh", menos comum.</div>
+    </div>
+    <div class="accent-option">
+      <div class="swatch-row">
+        <div class="sw" style="background: #fafafa;"></div>
+        <div class="sw" style="background: #d4d4d8; opacity: 0.6;"></div>
+        <div class="sw" style="background: rgba(255, 255, 255, 0.08);"></div>
+      </div>
+      <div class="accent-option-name">D · Monocromático</div>
+      <div class="accent-option-desc">Só preto e branco. Arc/Apple-like.</div>
+    </div>
+  </div>
+  <p class="annotations">A escolha aqui se propaga em botão primário, focus rings, status active, transcript live highlight. Padrão atual no mockup é A.</p>
+</section>
+
+<!-- ============ TYPOGRAPHY ============ -->
+<section>
+  <h2>Typography</h2>
+  <div class="type-row">
+    <div class="type-label">28 / 600</div>
+    <div class="type-display type-h1">Realtime translation, in real time</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">20 / 600</div>
+    <div class="type-display type-h2">Configure your audio devices</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">16 / 600</div>
+    <div class="type-display type-h3">Microphone & headphones</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">14 / 400</div>
+    <div class="type-display type-body">Olá, prazer em conhecer você. Me chamo Gabriel e estou animado pra discutir essa oportunidade.</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">13 / 400</div>
+    <div class="type-display type-small">Hello, nice to meet you. My name is Gabriel and I'm excited to discuss this opportunity.</div>
+  </div>
+  <div class="type-row">
+    <div class="type-label">11 / 500</div>
+    <div class="type-display type-caption">Translation Active · 1.2s</div>
+  </div>
+</section>
+
+<!-- ============ COMPONENTS ============ -->
+<section>
+  <h2>Components</h2>
+  <div class="components-grid">
+
+    <div class="component-card">
+      <div class="label">Buttons</div>
+      <div class="component-row">
+        <button class="btn btn-primary">Iniciar tradução</button>
+        <button class="btn btn-secondary">Cancelar</button>
+        <button class="btn btn-ghost">Settings</button>
+        <button class="btn btn-danger">Parar</button>
+      </div>
+    </div>
+
+    <div class="component-card">
+      <div class="label">Status badge</div>
+      <div class="component-row">
+        <span class="status"><span class="status-dot"></span>Idle</span>
+        <span class="status status-connecting"><span class="status-dot"></span>Connecting</span>
+        <span class="status status-active"><span class="status-dot"></span>Active</span>
+        <span class="status status-reconnecting"><span class="status-dot"></span>Reconnecting</span>
+        <span class="status status-error"><span class="status-dot"></span>Error</span>
+      </div>
+    </div>
+
+    <div class="component-card">
+      <div class="label">Language pair</div>
+      <div class="component-row">
+        <div class="lang-pair">
+          <div class="lang">Português</div>
+          <div class="lang-divider">→</div>
+          <div class="lang">English</div>
+        </div>
+        <div class="lang-pair">
+          <div class="lang">EN</div>
+          <div class="lang-divider">↔</div>
+          <div class="lang">PT</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="component-card">
+      <div class="label">Latency meter</div>
+      <div class="component-row">
+        <span class="latency"><span class="latency-bar"></span>1.2s</span>
+        <span class="latency"><span class="latency-bar" style="--w:30%"></span>0.6s</span>
+        <span class="latency"><span class="latency-bar"></span>2.4s</span>
+      </div>
+    </div>
+
+    <div class="component-card">
+      <div class="label">Input</div>
+      <input class="input" placeholder="sk-proj-...">
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ FLOATING WIDGET ============ -->
+<section>
+  <h2>Floating widget — estados</h2>
+  <div class="widget-showcase">
+
+    <div class="widget-frame">
+      <div class="frame-label">Idle (pronto para iniciar)</div>
+      <div class="widget">
+        <div class="widget-titlebar">
+          <div class="widget-title">Realtime Translate</div>
+          <div class="widget-controls">
+            <button class="icon-btn" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+            <button class="icon-btn" title="Minimize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <div class="widget-row">
+            <div class="lang-pair">
+              <div class="lang">PT</div>
+              <div class="lang-divider">↔</div>
+              <div class="lang">EN</div>
+            </div>
+            <span class="status"><span class="status-dot"></span>Idle</span>
+          </div>
+          <button class="widget-action">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+            Iniciar tradução
+          </button>
+          <div class="widget-meta">
+            <button class="widget-meta-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver transcript
+            </button>
+            <span class="latency">—</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget-frame">
+      <div class="frame-label">Active (traduzindo)</div>
+      <div class="widget">
+        <div class="widget-titlebar">
+          <div class="widget-title">Realtime Translate</div>
+          <div class="widget-controls">
+            <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg></button>
+            <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <div class="widget-row">
+            <div class="lang-pair">
+              <div class="lang">PT</div>
+              <div class="lang-divider">↔</div>
+              <div class="lang">EN</div>
+            </div>
+            <span class="status status-active"><span class="status-dot"></span>Active</span>
+          </div>
+          <button class="widget-action stop">
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+            Parar tradução
+          </button>
+          <div class="widget-meta">
+            <button class="widget-meta-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver transcript
+            </button>
+            <span class="latency"><span class="latency-bar"></span>1.2s</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="widget-frame">
+      <div class="frame-label">Reconnecting (drop transitório)</div>
+      <div class="widget">
+        <div class="widget-titlebar">
+          <div class="widget-title">Realtime Translate</div>
+          <div class="widget-controls">
+            <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg></button>
+            <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+          </div>
+        </div>
+        <div class="widget-body">
+          <div class="widget-row">
+            <div class="lang-pair">
+              <div class="lang">PT</div>
+              <div class="lang-divider">↔</div>
+              <div class="lang">EN</div>
+            </div>
+            <span class="status status-reconnecting"><span class="status-dot"></span>Reconnecting</span>
+          </div>
+          <button class="widget-action stop">
+            <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+            Parar tradução
+          </button>
+          <div class="widget-meta">
+            <button class="widget-meta-toggle">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              Ver transcript
+            </button>
+            <span class="latency text-tertiary" style="color: var(--warning);">retry 2/5…</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 32px;">
+    <div class="frame-label" style="font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px;">Active + transcript expanded</div>
+    <div class="widget expanded">
+      <div class="widget-titlebar">
+        <div class="widget-title">Realtime Translate</div>
+        <div class="widget-controls">
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg></button>
+          <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        </div>
+      </div>
+      <div class="widget-body">
+        <div class="widget-row">
+          <div class="lang-pair">
+            <div class="lang">PT</div>
+            <div class="lang-divider">↔</div>
+            <div class="lang">EN</div>
+          </div>
+          <span class="status status-active"><span class="status-dot"></span>Active</span>
+        </div>
+        <button class="widget-action stop">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>
+          Parar tradução
+        </button>
+        <div class="widget-meta">
+          <button class="widget-meta-toggle" style="color: var(--text-primary);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform: rotate(180deg);"><polyline points="6 9 12 15 18 9"/></svg>
+            Ocultar transcript
+          </button>
+          <span class="latency"><span class="latency-bar"></span>1.2s</span>
+        </div>
+      </div>
+      <div class="transcript">
+        <div class="transcript-section">
+          <div class="transcript-label">Você <span class="lang-tag">PT</span></div>
+          <div class="transcript-text">Olá, prazer em conhecer você. Me chamo Gabriel e tenho experiência com desenvolvimento backend distribuído. <span class="live">Estou interessado em…</span></div>
+        </div>
+        <div class="transcript-section">
+          <div class="transcript-label">Interlocutor <span class="lang-tag">EN → PT</span></div>
+          <div class="transcript-text">Obrigado pelo seu tempo, Gabriel. Pode me contar sobre seu último projeto e os principais desafios técnicos que você enfrentou?</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SETUP VIEW ============ -->
+<section>
+  <h2>Setup view</h2>
+  <div class="setup-window">
+    <div class="setup-titlebar">
+      <span class="setup-title">Realtime Translate · Setup</span>
+    </div>
+    <div class="setup-body">
+      <h3 class="setup-heading">Vamos configurar o app</h3>
+      <p class="setup-sub">3 itens detectados automaticamente, 1 precisa da sua mão.</p>
+
+      <div class="check-list">
+        <div class="check-item">
+          <div class="check-icon check-ok">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="check-content">
+            <div class="check-name">OpenAI API Key</div>
+            <div class="check-desc">Salva no Windows Credential Manager · termina em ...A4f9</div>
+          </div>
+          <div class="check-action"><button class="btn btn-ghost">Trocar</button></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon check-ok">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="check-content">
+            <div class="check-name">VB-CABLE A · VB-CABLE B</div>
+            <div class="check-desc">Detectados — pronto pra rotear áudio</div>
+          </div>
+          <div class="check-action"><button class="btn btn-ghost">Re-detectar</button></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon check-ok">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="check-content">
+            <div class="check-name">Microfone & headphones</div>
+            <div class="check-desc">Headset USB Logitech · Speaker: Logitech G733</div>
+          </div>
+          <div class="check-action"><button class="btn btn-ghost">Trocar</button></div>
+        </div>
+
+        <div class="check-item">
+          <div class="check-icon check-warn">!</div>
+          <div class="check-content">
+            <div class="check-name">Configurar Google Meet</div>
+            <div class="check-desc">Mic do Meet = CABLE-A · Speaker do Meet = CABLE-B · não conseguimos verificar automaticamente</div>
+          </div>
+          <div class="check-action"><button class="btn btn-secondary">Ver guia</button></div>
+        </div>
+      </div>
+
+      <div class="setup-divider"></div>
+
+      <div class="setup-footer">
+        <button class="btn btn-secondary">Testar tradução</button>
+        <button class="btn btn-primary">Continuar</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div style="text-align: center; color: var(--text-tertiary); font-size: 11px; margin-top: 64px; padding-top: 24px; border-top: 1px solid var(--border-subtle);">
+  Mockups estáticos · todos os ícones inline SVG · escala real (widget 308px, setup 640px)
+</div>
+
+</body>
+</html>
