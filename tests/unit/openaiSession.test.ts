@@ -412,4 +412,21 @@ describe('OpenAISession', () => {
       warnSpy.mockRestore();
     }
   });
+
+  it('does not emit active when onopen fires late after stop()', () => {
+    const session = new OpenAISession({
+      apiKey: 'sk',
+      sourceLang: 'pt',
+      targetLang: 'en',
+      events,
+      wsFactory: fakeFactory,
+    });
+    session.start();
+    // Don't call simulateOpen yet — connection still pending
+    session.stop();
+    const ws = FakeWebSocket.instances[0]!;
+    ws.simulateOpen(); // late onopen, after stop()
+    // Last state must be idle (from stop), not active
+    expect(onState).toHaveBeenLastCalledWith({ kind: 'idle' });
+  });
 });

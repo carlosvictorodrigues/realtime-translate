@@ -70,6 +70,7 @@ export class OpenAISession {
       // Bound the pre-connect buffer — drop oldest on overflow (M1).
       if (this.pendingAudio.length >= MAX_PENDING_AUDIO) {
         this.pendingAudio.shift();
+        // TODO(Task 14): replace with structured logger
         // eslint-disable-next-line no-console
         console.warn('OpenAISession: pending audio buffer overflow, dropping oldest');
       }
@@ -108,6 +109,10 @@ export class OpenAISession {
   }
 
   private handleOpen(): void {
+    // Guard against late-fire: if user called stop() or server sent an error
+    // while the WebSocket was still in CONNECTING state, the onopen callback
+    // can still fire. Bail out before emitting active state.
+    if (this.userStopped || this.serverError) return;
     this.isOpen = true;
     // Successful (re)connect — reset backoff so next failure starts fresh.
     this.backoff.reset();
@@ -138,6 +143,7 @@ export class OpenAISession {
       event = JSON.parse(raw);
     } catch {
       // M4: best-effort warning. Don't include the raw payload — could leak transcript.
+      // TODO(Task 14): replace with structured logger
       // eslint-disable-next-line no-console
       console.warn('OpenAISession: malformed message ignored');
       return;
