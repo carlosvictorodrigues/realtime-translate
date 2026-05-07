@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AudioPipeline, type OffscreenController } from '@main/translate/audioPipeline';
-import type { OpenAISession } from '@main/translate/openaiSession';
+import { AudioPipeline, type OffscreenController, type SessionLike } from '@main/translate/audioPipeline';
 
 class FakeOffscreen implements OffscreenController {
   startCaptureCalled = '';
@@ -24,7 +23,7 @@ class FakeOffscreen implements OffscreenController {
   }
 }
 
-class FakeSession {
+class FakeSession implements SessionLike {
   appendCalls: string[] = [];
   startCalled = false;
   stopCalled = false;
@@ -49,7 +48,7 @@ describe('AudioPipeline', () => {
     session = new FakeSession();
     pipeline = new AudioPipeline({
       offscreen,
-      session: session as unknown as OpenAISession,
+      session,
       micDeviceId: 'mic-123',
       outputDeviceId: 'cable-a-456',
     });
@@ -81,5 +80,24 @@ describe('AudioPipeline', () => {
     pipeline.stop();
     expect(session.stopCalled).toBe(true);
     expect(offscreen.stopped).toBe(true);
+  });
+
+  it('rolls back offscreen on capture init failure (Fix I-1)', async () => {
+    class FailingOffscreen extends FakeOffscreen {
+      override async startCapture(): Promise<void> {
+        throw new Error('mic permission denied');
+      }
+    }
+    const failing = new FailingOffscreen();
+    const p = new AudioPipeline({
+      offscreen: failing,
+      session,
+      micDeviceId: 'mic-x',
+      outputDeviceId: 'cable-x',
+    });
+    await expect(p.start()).rejects.toThrow('mic permission denied');
+    expect(failing.startPlaybackCalled).toBe('cable-x');
+    expect(failing.stopped).toBe(true); // rollback called
+    expect(session.startCalled).toBe(false); // session never started
   });
 });

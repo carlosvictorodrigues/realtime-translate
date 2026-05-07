@@ -1950,9 +1950,8 @@ We abstract the offscreen renderer behind an `OffscreenController` interface so 
 
 `tests/integration/audioPipeline.test.ts`:
 ```typescript
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AudioPipeline, type OffscreenController } from '@main/translate/audioPipeline';
-import type { OpenAISession } from '@main/translate/openaiSession';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { AudioPipeline, type OffscreenController, type SessionLike } from '@main/translate/audioPipeline';
 
 class FakeOffscreen implements OffscreenController {
   startCaptureCalled = '';
@@ -1976,7 +1975,7 @@ class FakeOffscreen implements OffscreenController {
   }
 }
 
-class FakeSession {
+class FakeSession implements SessionLike {
   appendCalls: string[] = [];
   startCalled = false;
   stopCalled = false;
@@ -2001,7 +2000,7 @@ describe('AudioPipeline', () => {
     session = new FakeSession();
     pipeline = new AudioPipeline({
       offscreen,
-      session: session as unknown as OpenAISession,
+      session,
       micDeviceId: 'mic-123',
       outputDeviceId: 'cable-a-456',
     });
@@ -2034,6 +2033,25 @@ describe('AudioPipeline', () => {
     expect(session.stopCalled).toBe(true);
     expect(offscreen.stopped).toBe(true);
   });
+
+  it('rolls back offscreen on capture init failure (Fix I-1)', async () => {
+    class FailingOffscreen extends FakeOffscreen {
+      override async startCapture(): Promise<void> {
+        throw new Error('mic permission denied');
+      }
+    }
+    const failing = new FailingOffscreen();
+    const p = new AudioPipeline({
+      offscreen: failing,
+      session,
+      micDeviceId: 'mic-x',
+      outputDeviceId: 'cable-x',
+    });
+    await expect(p.start()).rejects.toThrow('mic permission denied');
+    expect(failing.startPlaybackCalled).toBe('cable-x');
+    expect(failing.stopped).toBe(true); // rollback called
+    expect(session.startCalled).toBe(false); // session never started
+  });
 });
 ```
 
@@ -2049,8 +2067,6 @@ Expected: FAIL.
 
 `src/main/translate/audioPipeline.ts`:
 ```typescript
-import type { OpenAISession } from './openaiSession';
-
 export interface OffscreenController {
   startCapture(deviceId: string, onPcm: (b64: string) => void): Promise<void>;
   startPlayback(deviceId: string): Promise<void>;
@@ -2058,9 +2074,16 @@ export interface OffscreenController {
   stopAll(): void;
 }
 
+/** Narrow session interface — pipeline only uses these three methods. */
+export interface SessionLike {
+  start(): void;
+  appendAudio(base64: string): void;
+  stop(): void;
+}
+
 export interface AudioPipelineConfig {
   offscreen: OffscreenController;
-  session: OpenAISession;
+  session: SessionLike;
   micDeviceId: string;
   outputDeviceId: string;
 }
@@ -2070,9 +2093,16 @@ export class AudioPipeline {
 
   async start(): Promise<void> {
     await this.cfg.offscreen.startPlayback(this.cfg.outputDeviceId);
-    await this.cfg.offscreen.startCapture(this.cfg.micDeviceId, (b64) =>
-      this.cfg.session.appendAudio(b64),
-    );
+    try {
+      await this.cfg.offscreen.startCapture(this.cfg.micDeviceId, (b64) =>
+        this.cfg.session.appendAudio(b64),
+      );
+    } catch (err) {
+      // Capture init failed after playback was set up — rollback the offscreen
+      // resources so we don't leak an idle AudioContext + sinkId binding.
+      this.cfg.offscreen.stopAll();
+      throw err;
+    }
     this.cfg.session.start();
   }
 
@@ -2093,7 +2123,7 @@ export class AudioPipeline {
 npm test -- audioPipeline
 ```
 
-Expected: 4 passing.
+Expected: 5 passing.
 
 - [ ] **Step 5: Commit**
 
