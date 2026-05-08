@@ -203,7 +203,7 @@ app.whenReady().then(async () => {
   // eslint-disable-next-line prefer-const
   let manager: SessionManager | undefined;
 
-  const { configStore } = registerIpcHandlers({
+  const { configStore, prefsStore } = registerIpcHandlers({
     onStart: async (args) => {
       // If a previous session is still running (e.g., user clicked Start twice), tear it
       // down first so we don't leak resources or double-bind IPC channels.
@@ -257,6 +257,8 @@ app.whenReady().then(async () => {
     },
     listDevices: () => buildDeviceInventory(offscreenWindow!),
   });
+  // prefsStore is referenced in Tasks 10/11; destructure now to expose it.
+  void prefsStore;
 });
 
 app.on('window-all-closed', () => {

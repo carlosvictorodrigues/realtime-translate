@@ -1,5 +1,8 @@
 import { IPC } from '../../shared/events';
 import type { BidirectionalArgs, DeviceInventory, Direction, DirectionalState } from '../../shared/types';
+import type {
+  UserPrefs, WidgetPosition, Languages, DevicePrefs,
+} from '../config/userPrefsStore';
 
 export interface IpcInvokeMap {
   [IPC.GetApiKeyStatus]: { args: void; result: boolean };
@@ -9,6 +12,10 @@ export interface IpcInvokeMap {
   [IPC.ListDevices]: { args: void; result: DeviceInventory };
   [IPC.StartTranslation]: { args: BidirectionalArgs; result: void };
   [IPC.StopTranslation]: { args: void; result: void };
+  [IPC.PrefsLoad]: { args: void; result: UserPrefs };
+  [IPC.PrefsSetWidgetPosition]: { args: WidgetPosition; result: void };
+  [IPC.PrefsSetLanguages]: { args: Languages; result: void };
+  [IPC.PrefsSetDevices]: { args: DevicePrefs; result: void };
 }
 
 export interface IpcSendMap {

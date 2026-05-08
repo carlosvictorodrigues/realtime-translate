@@ -8,6 +8,12 @@ export const IPC = {
   StartTranslation: 'translation:start',
   StopTranslation: 'translation:stop',
 
+  // Prefs (Renderer → Main, invoke)
+  PrefsLoad: 'prefs:load',
+  PrefsSetWidgetPosition: 'prefs:setWidgetPosition',
+  PrefsSetLanguages: 'prefs:setLanguages',
+  PrefsSetDevices: 'prefs:setDevices',
+
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',

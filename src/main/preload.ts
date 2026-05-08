@@ -22,6 +22,18 @@ const api = {
   stopTranslation: (): Promise<IpcInvokeMap[typeof IPC.StopTranslation]['result']> =>
     ipcRenderer.invoke(IPC.StopTranslation),
 
+  loadPrefs: (): Promise<IpcInvokeMap[typeof IPC.PrefsLoad]['result']> =>
+    ipcRenderer.invoke(IPC.PrefsLoad),
+  saveWidgetPosition: (
+    pos: IpcInvokeMap[typeof IPC.PrefsSetWidgetPosition]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetWidgetPosition, pos),
+  saveLanguages: (
+    langs: IpcInvokeMap[typeof IPC.PrefsSetLanguages]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetLanguages, langs),
+  saveDevices: (
+    devices: IpcInvokeMap[typeof IPC.PrefsSetDevices]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetDevices, devices),
+
   onDirectionalState: (
     cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
   ): (() => void) => {
