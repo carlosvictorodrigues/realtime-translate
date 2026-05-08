@@ -5,7 +5,7 @@ export function ReviewSection({
 }: {
   status: 'ok' | 'warn';
   title: string;
-  value: string | ReactNode;
+  value: ReactNode;
   action: ReactNode;
 }): JSX.Element {
   return (

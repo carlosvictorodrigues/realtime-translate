@@ -8,6 +8,8 @@ import { ReviewSection } from './ReviewSection';
 import type { Locale } from '../../../../shared/i18n';
 import type { DeviceInventory } from '../../../../shared/types';
 
+// TODO(m4-followup): duplicated verbatim from Step3Cables.tsx. Extract to
+// `views/setup/shared/cables.ts` so both call sites stay in sync.
 function bothCablesPresent(inv: DeviceInventory): boolean {
   return Boolean(
     inv.cableA?.playback && inv.cableA?.recording &&
@@ -57,6 +59,11 @@ export function ReviewScreen(): JSX.Element {
 
   return (
     <div className="setup-shell">
+      {/* TODO(m4-followup): titlebar + LanguageDropdown is near-identical to */}
+      {/* WizardShell.tsx — extract <SetupTitlebar /> so the locale state, the */}
+      {/* save-then-reload chain, and the resolveLocale .catch() pattern live */}
+      {/* in one place. Today touching one screen and forgetting the other is */}
+      {/* a real failure mode (Task 5's race fix had to be applied twice). */}
       <div className="setup-titlebar">
         <span className="setup-title">Realtime Translate · {t('review.heading')}</span>
         <LanguageDropdown
@@ -102,6 +109,7 @@ export function ReviewScreen(): JSX.Element {
             })}
             action={<button className="btn btn-ghost" onClick={(): void => editStep(4)}>{t('review.section.edit')}</button>}
           />
+          {/* Meet config is manual — no auto-verify path exists, so this section is permanently 'warn'. */}
           <ReviewSection
             status="warn"
             title={t('review.section.meet')}
