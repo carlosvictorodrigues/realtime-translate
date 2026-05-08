@@ -12,8 +12,14 @@ export function Step2ApiKey({ mode }: { mode?: 'edit' | undefined }): JSX.Elemen
   const [howToOpen, setHowToOpen] = useState(false);
 
   useEffect(() => {
-    void rt.hasApiKey().then(setHasKey);
-    void rt.getApiKeyHint().then(setHint);
+    rt.hasApiKey().then(setHasKey).catch((e: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error('[step2] hasApiKey failed', e);
+    });
+    rt.getApiKeyHint().then(setHint).catch((e: unknown) => {
+      // eslint-disable-next-line no-console
+      console.error('[step2] getApiKeyHint failed', e);
+    });
   }, []);
 
   const goNext = (): void => {
@@ -45,7 +51,7 @@ export function Step2ApiKey({ mode }: { mode?: 'edit' | undefined }): JSX.Elemen
 
       {hasKey ? (
         <div style={{ marginBottom: 16, padding: 12, background: 'rgba(74,222,128,0.08)', borderRadius: 6, fontSize: 13 }}>
-          {t('setup.key.savedHint', { last4: hint ?? '••••' })}
+          {t('setup.key.savedHint', { last4: hint ?? '●●●●' })}
         </div>
       ) : (
         <input
@@ -58,6 +64,8 @@ export function Step2ApiKey({ mode }: { mode?: 'edit' | undefined }): JSX.Elemen
       )}
 
       <div style={{ marginTop: 16 }}>
+        {/* TODO(m5): replace target="_blank" with shell.openExternal via IPC — */}
+        {/* without setWindowOpenHandler this opens in an in-app BrowserWindow. */}
         <a
           href="https://platform.openai.com/api-keys"
           target="_blank"
