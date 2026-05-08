@@ -64,7 +64,7 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
         />
       </div>
 
-      {skipped && (
+      {skipped && !allPassed && (
         <div style={{ padding: 10, background: 'rgba(245,158,11,0.1)', color: 'var(--warning)', borderRadius: 6, fontSize: 12, marginBottom: 16 }}>
           {t('setup.test.skipWarning')}
         </div>
