@@ -81,3 +81,18 @@ Both fixes have new tests in the suite.
 
 - **Initial latency was ~30 seconds** because the M1-style "Listen to this device" monitoring was still enabled on `CABLE-A Output` (and would have been on `CABLE-B Output` similarly). The monitoring replicates the EN translation through the user's headset, the headset mic captures it, the app re-queues it for translation, and `pendingAudio` accumulates a backlog. **Fix:** disable Listen-to-this-device on both cable Outputs for M2 (M2 doesn't need the M1 debugging affordance — Direction B's translation plays directly to the user's headset via `setSinkId`). After disabling, latency returned to the expected 1-3s.
 - QA-CHECKLIST.md updated with a prominent warning so the next person doesn't repeat this.
+
+## M3 end-to-end smoke (FloatingWidget UI + first-launch routing)
+
+**Run date:** 2026-05-08
+**Run by:** Gabriel
+**Hardware/OS:** Windows 11, VB-CABLE A+B installed, Electron 42, USB headset, Google Meet on PC + Google Meet on second device as remote participant
+
+**Result:** ✅ **PASS**
+
+**Procedure:** Per `docs/QA-CHECKLIST.md` M3 section. First-launch flow correctly opened SetupView with no bar; saving API key + selecting 4 devices + clicking "Concluir setup" spawned the FloatingWidget and closed the SetupView. Subsequent launch went straight to the bar. PT spoken via PC mic translated to EN at the second device (Direction A). EN spoken at the second device translated to PT in the PC headset (Direction B).
+
+### Issue hit during smoke (Meet config gotcha — not a regression)
+
+- **Direction B initially passed EN through untranslated.** Cause: Meet's PC speaker was set to "FxSound Speakers" (system default) instead of `CABLE-B Input`. Meet played the EN audio straight to the headset, bypassing the cable; Session B captured silence from `CABLE-B Output` and emitted no deltas. **Fix:** in Meet → Settings → Audio → Speaker, pick `CABLE-B Input (VB-Audio Virtual Cable B)` (NOT the `CABLE-B In 16ch` multi-channel variant). After the change, Direction B worked as expected.
+- This is an instance of the broader "VB-CABLE setup is hard for non-technical users" concern. The next milestone (real SetupView with detection + screenshots + Test Translation) will mitigate by walking the user through Meet config visually and validating the pipeline without requiring a live Meet session.
