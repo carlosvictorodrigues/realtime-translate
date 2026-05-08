@@ -1,7 +1,8 @@
 export interface OffscreenController {
-  startCapture(deviceId: string, onPcm: (b64: string) => void): Promise<void>;
-  startPlayback(deviceId: string): Promise<void>;
-  pushPlayback(b64: string): void;
+  startCapture(streamId: string, deviceId: string, onPcm: (b64: string) => void): Promise<void>;
+  startPlayback(streamId: string, deviceId: string): Promise<void>;
+  pushPlayback(streamId: string, b64: string): void;
+  stopStream(streamId: string): void;
   stopAll(): void;
 }
 
@@ -13,6 +14,7 @@ export interface SessionLike {
 }
 
 export interface AudioPipelineConfig {
+  streamId: string;
   offscreen: OffscreenController;
   session: SessionLike;
   micDeviceId: string;
@@ -23,26 +25,24 @@ export class AudioPipeline {
   constructor(private readonly cfg: AudioPipelineConfig) {}
 
   async start(): Promise<void> {
-    await this.cfg.offscreen.startPlayback(this.cfg.outputDeviceId);
+    await this.cfg.offscreen.startPlayback(this.cfg.streamId, this.cfg.outputDeviceId);
     try {
-      await this.cfg.offscreen.startCapture(this.cfg.micDeviceId, (b64) =>
+      await this.cfg.offscreen.startCapture(this.cfg.streamId, this.cfg.micDeviceId, (b64) =>
         this.cfg.session.appendAudio(b64),
       );
     } catch (err) {
-      // Capture init failed after playback was set up — rollback the offscreen
-      // resources so we don't leak an idle AudioContext + sinkId binding.
-      this.cfg.offscreen.stopAll();
+      this.cfg.offscreen.stopStream(this.cfg.streamId);
       throw err;
     }
     this.cfg.session.start();
   }
 
   handleSessionAudio(base64: string): void {
-    this.cfg.offscreen.pushPlayback(base64);
+    this.cfg.offscreen.pushPlayback(this.cfg.streamId, base64);
   }
 
   stop(): void {
     this.cfg.session.stop();
-    this.cfg.offscreen.stopAll();
+    this.cfg.offscreen.stopStream(this.cfg.streamId);
   }
 }
