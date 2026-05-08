@@ -200,8 +200,9 @@ async function createWindows(prefsStore: UserPrefsStore): Promise<void> {
   const initial = computeWidgetPosition(stored, 480, 40);
   floatingWidget.setPosition(initial.x, initial.y);
 
-  // Debounced save on drag-end. Electron 'moved' fires once per drag stop,
-  // but on macOS it fires per-pixel during drag — debounce defensively.
+  // Debounced save on drag-end. On Windows/Linux 'moved' fires continuously
+  // during drag (Electron aliases it to 'move' on Windows); on macOS it
+  // fires once at drag-end. Debounce normalizes both to a single save.
   let moveTimer: ReturnType<typeof setTimeout> | undefined;
   floatingWidget.on('moved', () => {
     if (!floatingWidget) return;
