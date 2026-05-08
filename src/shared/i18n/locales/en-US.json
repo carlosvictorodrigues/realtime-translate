@@ -43,6 +43,20 @@
       "speaks": "Speaks",
       "hears": "Hears",
       "start": "Begin →"
+    },
+    "key": {
+      "label": "OpenAI Key",
+      "heading": "Your OpenAI key",
+      "sub": "Each user brings their own key. Cost: ~$0.30 per 5 minutes of conversation.",
+      "placeholder": "sk-proj-...",
+      "invalidPrefix": "Key must start with 'sk-'",
+      "savedHint": "Saved: ●●●●{{last4}}",
+      "signupLink": "I don't have a key — take me to OpenAI signup",
+      "howToToggle": "How do I get a key?",
+      "saveError": "Could not save key: {{message}}",
+      "howToStep1": "Create an account at platform.openai.com",
+      "howToStep2": "Set up billing (Settings → Billing)",
+      "howToStep3": "Create an API key (API Keys → Create new secret key)"
     }
   }
 }

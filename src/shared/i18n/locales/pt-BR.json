@@ -43,6 +43,20 @@
       "speaks": "Fala em",
       "hears": "Ouve em",
       "start": "Começar →"
+    },
+    "key": {
+      "label": "Chave da OpenAI",
+      "heading": "Sua chave da OpenAI",
+      "sub": "Cada usuário traz a própria chave. Custo: ~$0.30 por 5 minutos de conversa.",
+      "placeholder": "sk-proj-...",
+      "invalidPrefix": "A chave deve começar com 'sk-'",
+      "savedHint": "Salva: ●●●●{{last4}}",
+      "signupLink": "Não tenho chave — me leve pro signup OpenAI",
+      "howToToggle": "Como pegar a chave?",
+      "saveError": "Não foi possível salvar a chave: {{message}}",
+      "howToStep1": "Crie uma conta em platform.openai.com",
+      "howToStep2": "Configure billing (Settings → Billing)",
+      "howToStep3": "Crie uma API key (API Keys → Create new secret key)"
     }
   }
 }

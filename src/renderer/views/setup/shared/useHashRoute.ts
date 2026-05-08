@@ -5,6 +5,8 @@ export type HashRoute =
   | { kind: 'wizard'; step: WizardStep; mode?: 'edit' }
   | { kind: 'review' };
 
+export type WizardRoute = Extract<HashRoute, { kind: 'wizard' }>;
+
 const STEP_VALUES = [1, 2, 3, 4, 5, 6] as const;
 
 export function parseHashRoute(hash: string): HashRoute {

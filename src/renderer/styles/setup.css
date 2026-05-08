@@ -207,3 +207,19 @@
   margin-bottom: 12px;
   font-weight: 500;
 }
+
+.setup-input {
+  width: 100%;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 13px;
+}
+.setup-input:focus {
+  outline: 0;
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
