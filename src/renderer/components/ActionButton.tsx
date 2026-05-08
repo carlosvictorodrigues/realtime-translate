@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import type { BarState } from '../state/aggregateState';
+import { useT } from '../../shared/i18n/I18nProvider';
 
 export function ActionButton({
   state,
@@ -8,10 +9,11 @@ export function ActionButton({
   state: BarState['kind'];
   onClick: () => void;
 }): JSX.Element {
+  const t = useT();
   // ▶ for idle, ⏸ for active/connecting/reconnecting, ↻ for error.
   const isPlay = state === 'idle';
   const isRetry = state === 'error';
-  const title = isPlay ? 'Iniciar' : isRetry ? 'Tentar novamente' : 'Pausar';
+  const title = isPlay ? t('bar.tooltip.play') : isRetry ? t('bar.tooltip.retry') : t('bar.tooltip.pause');
   return (
     <button
       className={`rt-action${isRetry ? ' rt-action--retry' : ''}`}

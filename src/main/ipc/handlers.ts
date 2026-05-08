@@ -4,6 +4,7 @@ import type { IpcInvokeMap } from './channels';
 import { ConfigStore } from '../config/configStore';
 import { UserPrefsStore } from '../config/userPrefsStore';
 import type { BidirectionalArgs, DeviceInventory } from '../../shared/types';
+import type { Locale } from '../../shared/i18n';
 
 interface HandlerDeps {
   configStore: ConfigStore;
@@ -23,6 +24,7 @@ interface HandlerDeps {
   onSetupComplete: () => Promise<void>;
   showBarMenu: (sender: Electron.WebContents) => void;
   quitApp: () => void;
+  resolveLocale: () => Locale;
 }
 
 type InvokeHandler<K extends keyof IpcInvokeMap> = (
@@ -55,4 +57,5 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.SetupComplete, () => deps.onSetupComplete());
   handle(IPC.ShowBarMenu, (e) => deps.showBarMenu(e.sender));
   handle(IPC.AppQuit, () => deps.quitApp());
+  handle(IPC.ResolveLocale, () => deps.resolveLocale());
 }

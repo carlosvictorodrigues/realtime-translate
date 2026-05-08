@@ -3,6 +3,7 @@ import type { BidirectionalArgs, DeviceInventory, Direction, DirectionalState } 
 import type {
   UserPrefs, WidgetPosition, Languages, DevicePrefs,
 } from '../config/userPrefsStore';
+import type { Locale } from '../../shared/i18n';
 
 export interface IpcInvokeMap {
   [IPC.GetApiKeyStatus]: { args: void; result: boolean };
@@ -20,6 +21,7 @@ export interface IpcInvokeMap {
   [IPC.SetupComplete]: { args: void; result: void };
   [IPC.ShowBarMenu]: { args: void; result: void };
   [IPC.AppQuit]: { args: void; result: void };
+  [IPC.ResolveLocale]: { args: void; result: Locale };
 }
 
 export interface IpcSendMap {

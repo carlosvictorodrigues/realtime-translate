@@ -13,6 +13,7 @@ import { JsonlSink } from './util/jsonlSink';
 import { ConfigStore } from './config/configStore';
 import { UserPrefsStore } from './config/userPrefsStore';
 import { readEnvApiKey } from './config/envFallback';
+import { resolveLocale } from './i18n/resolveLocale';
 import { IPC } from '../shared/events';
 import type {
   DeviceInventory,
@@ -415,6 +416,7 @@ app.whenReady().then(async () => {
       menu.popup({ window: win });
     },
     quitApp: () => app.quit(),
+    resolveLocale: () => resolveLocale(prefsStore),
   });
 });
 

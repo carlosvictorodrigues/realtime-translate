@@ -46,6 +46,9 @@ const api = {
   quit: (): Promise<IpcInvokeMap[typeof IPC.AppQuit]['result']> =>
     ipcRenderer.invoke(IPC.AppQuit),
 
+  resolveLocale: (): Promise<IpcInvokeMap[typeof IPC.ResolveLocale]['result']> =>
+    ipcRenderer.invoke(IPC.ResolveLocale),
+
   onDirectionalState: (
     cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
   ): (() => void) => {

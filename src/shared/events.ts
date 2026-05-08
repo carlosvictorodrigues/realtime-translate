@@ -20,6 +20,9 @@ export const IPC = {
   ShowBarMenu: 'window:showBarMenu',
   AppQuit: 'app:quit',
 
+  // i18n (Renderer → Main, invoke)
+  ResolveLocale: 'i18n:resolveLocale',
+
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',

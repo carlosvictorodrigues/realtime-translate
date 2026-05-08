@@ -8,6 +8,7 @@ import { LanguagePair } from '../components/LanguagePair';
 import { LatencyMeter } from '../components/LatencyMeter';
 import { ActionButton } from '../components/ActionButton';
 import { SettingsButton } from '../components/SettingsButton';
+import { useT } from '../../shared/i18n/I18nProvider';
 
 export function FloatingWidget(): JSX.Element {
   const {
@@ -16,6 +17,7 @@ export function FloatingWidget(): JSX.Element {
     stateA, stateB, latencyMs,
     setDirectionState, setLatency, hydrate,
   } = useStore();
+  const t = useT();
 
   useEffect(() => {
     void hydrate();
@@ -77,11 +79,12 @@ export function FloatingWidget(): JSX.Element {
         />
       )}
       {bar.kind === 'connecting' && (
-        <span className="rt-status">Conectando…</span>
+        <span className="rt-status">{t('bar.status.connecting')}</span>
       )}
       {bar.kind === 'reconnecting' && (
         <span className="rt-status">
-          Reconectando<span className="rt-status__attempt"> · {bar.origin}: tentativa {bar.attempt}</span>
+          {t('bar.status.reconnecting')}
+          <span className="rt-status__attempt"> · {bar.origin}: {t('bar.status.attempt', { n: bar.attempt })}</span>
         </span>
       )}
       {bar.kind === 'error' && (
