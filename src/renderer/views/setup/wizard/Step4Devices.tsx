@@ -58,11 +58,37 @@ export function Step4Devices({ mode }: { mode?: 'edit' | undefined }): JSX.Eleme
     return [cable, ...ins];
   })();
 
+  const cableAMismatch = Boolean(
+    devices?.cableA?.playback &&
+    selectedToMeet &&
+    selectedToMeet !== devices.cableA.playback.deviceId,
+  );
+  const cableBMismatch = Boolean(
+    devices?.cableB?.recording &&
+    selectedFromMeet &&
+    selectedFromMeet !== devices.cableB.recording.deviceId,
+  );
+  const showStaleBanner = cableAMismatch || cableBMismatch;
+
+  const useRecommendedCables = (): void => {
+    if (devices?.cableA?.playback) setSelectedToMeet(devices.cableA.playback.deviceId);
+    if (devices?.cableB?.recording) setSelectedFromMeet(devices.cableB.recording.deviceId);
+  };
+
   return (
     <>
       <div className="setup-step-meta">{t('setup.stepLabel', { n: 4, total: 6 })} — {t('setup.devices.label')}</div>
       <h1 className="setup-heading">{t('setup.devices.heading')}</h1>
       <p className="setup-sub">{t('setup.devices.sub')}</p>
+
+      {showStaleBanner && (
+        <div className="setup-stale-banner">
+          <span>⚠ {t('setup.devices.staleCableWarning')}</span>
+          <button type="button" className="btn btn-ghost" onClick={useRecommendedCables}>
+            {t('setup.devices.useRecommended')}
+          </button>
+        </div>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
         <DeviceField

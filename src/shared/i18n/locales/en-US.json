@@ -91,7 +91,9 @@
       "headsetHint": "Where you hear the contact's translation. Use a separate headset if possible — avoids feedback with the microphone.",
       "languagesLabel": "Languages (you ↔ contact)",
       "recommended": "(recommended)",
-      "selectPlaceholder": "— select —"
+      "selectPlaceholder": "— select —",
+      "staleCableWarning": "Your Output/Capture selections aren't using the recommended VB-CABLE devices. Translation test may fail.",
+      "useRecommended": "Use recommended"
     },
     "meet": {
       "label": "Configure Meet",

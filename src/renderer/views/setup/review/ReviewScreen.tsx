@@ -4,17 +4,8 @@ import { rt } from '../../../ipc/client';
 import { useStore } from '../../../state/store';
 import { navigate, type WizardStep } from '../shared/useHashRoute';
 import { SetupTitlebar } from '../shared/SetupTitlebar';
+import { bothCablesPresent } from '../shared/cables';
 import { ReviewSection } from './ReviewSection';
-import type { DeviceInventory } from '../../../../shared/types';
-
-// TODO(m4-followup): duplicated verbatim from Step3Cables.tsx. Extract to
-// `views/setup/shared/cables.ts` so both call sites stay in sync.
-function bothCablesPresent(inv: DeviceInventory): boolean {
-  return Boolean(
-    inv.cableA?.playback && inv.cableA?.recording &&
-    inv.cableB?.playback && inv.cableB?.recording,
-  );
-}
 
 export function ReviewScreen(): JSX.Element {
   const t = useT();

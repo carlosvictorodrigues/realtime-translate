@@ -2,14 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import { useT } from '../../../../shared/i18n/I18nProvider';
 import { rt } from '../../../ipc/client';
 import { navigate } from '../shared/useHashRoute';
-import type { DeviceInventory } from '../../../../shared/types';
-
-function bothCablesPresent(inv: DeviceInventory): boolean {
-  return Boolean(
-    inv.cableA?.playback && inv.cableA?.recording &&
-    inv.cableB?.playback && inv.cableB?.recording,
-  );
-}
+import { bothCablesPresent } from '../shared/cables';
 
 export function Step3Cables({ mode }: { mode?: 'edit' | undefined }): JSX.Element {
   const t = useT();

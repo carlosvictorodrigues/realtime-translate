@@ -91,7 +91,9 @@
       "headsetHint": "Onde você ouve a tradução do interlocutor. Use um fone separado se possível — evita acoplamento com o microfone.",
       "languagesLabel": "Idiomas (você ↔ interlocutor)",
       "recommended": "(recomendado)",
-      "selectPlaceholder": "— selecione —"
+      "selectPlaceholder": "— selecione —",
+      "staleCableWarning": "Suas seleções de Saída/Captura não usam os cabos VB-CABLE recomendados. Pode falhar no teste de tradução.",
+      "useRecommended": "Usar recomendado"
     },
     "meet": {
       "label": "Configurar Meet",
