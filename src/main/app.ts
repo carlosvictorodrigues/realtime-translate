@@ -311,24 +311,30 @@ app.whenReady().then(async () => {
 
   const offscreenBridge = new OffscreenBridge(offscreenWindow);
 
-  const emitDirectionalState = (s: DirectionalState): void => {
-    if (floatingWidget && !floatingWidget.isDestroyed() && !floatingWidget.webContents.isDestroyed()) {
-      floatingWidget.webContents.send(IPC.DirectionalStateChanged, s);
+  // Both the FloatingWidget and SetupView (when open) want session state +
+  // latency so their UIs reflect what's happening. The TestRig stub leans on
+  // this during first-launch (before the bar exists), and the gear-opened
+  // SetupView would otherwise show stale "idle" mid-session. Fan out to all
+  // alive UI windows; offscreen never subscribes.
+  const broadcast = <T,>(channel: string, payload: T): void => {
+    for (const win of [floatingWidget, setupView]) {
+      if (win && !win.isDestroyed() && !win.webContents.isDestroyed()) {
+        win.webContents.send(channel, payload);
+      }
     }
+  };
+  const emitDirectionalState = (s: DirectionalState): void => {
+    broadcast(IPC.DirectionalStateChanged, s);
   };
   const emitTranscript = (t: {
     direction: 'A' | 'B';
     kind: 'input' | 'output';
     text: string;
   }): void => {
-    if (floatingWidget && !floatingWidget.isDestroyed() && !floatingWidget.webContents.isDestroyed()) {
-      floatingWidget.webContents.send(IPC.TranscriptDelta, t);
-    }
+    broadcast(IPC.TranscriptDelta, t);
   };
   const emitLatency = (m: { direction: Direction; averageMs: number; sampleCount: number }): void => {
-    if (floatingWidget && !floatingWidget.isDestroyed() && !floatingWidget.webContents.isDestroyed()) {
-      floatingWidget.webContents.send(IPC.LatencyMeasured, m);
-    }
+    broadcast(IPC.LatencyMeasured, m);
   };
 
   // `manager` is reassigned on each Start (after teardown of any prior session).

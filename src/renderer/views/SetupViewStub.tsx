@@ -114,7 +114,7 @@ export function SetupViewStub(): JSX.Element {
             color: 'var(--text-tertiary)',
           }}
         >
-          M2 Bidirectional
+          Setup
         </div>
         <h1 style={{ fontSize: 18, fontWeight: 600 }}>Realtime Translate</h1>
       </header>

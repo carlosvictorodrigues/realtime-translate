@@ -247,8 +247,8 @@ Final manual gate before tagging M3. Exercises the new shipping UI: a transparen
 ### Common failures
 
 - **Bar invisible after Concluir setup:** check that prefs.json got written (`$env:APPDATA\realtime-translate\prefs.json`). If empty, the IPC handler probably failed — check console output.
-- **Bar appears but click-through is broken:** the floating window has `setIgnoreMouseEvents` toggled per pointer region. If clicks fall through everywhere, the pointer-region forwarding regressed.
-- **SetupView opens after every launch:** prefs aren't being read on startup, or the "all 4 devices + key present" gate is too strict. Check `selectIsSetupComplete` and the bootstrap flow.
+- **Clicks on the empty margins around the bar do nothing:** the floating BrowserWindow is 480×40 but the visible bar is `width: auto` (~150–340 px depending on state). Pixels outside the bar are transparent but still belong to the window — they capture clicks rather than passing through. M3 ships with this limitation; click-through forwarding (`setIgnoreMouseEvents` per pointer region) is deferred to M4+.
+- **SetupView opens after every launch:** prefs aren't being read on startup, or the "all 4 devices + key present" gate is too strict. Check `isSetupComplete()` in `src/main/app.ts` and the bootstrap flow.
 - **Reconnecting tint never appears:** the bar reads from the bidirectional store; check that `cableA`/`cableB` status events propagate to the floating widget renderer.
 - **Same as M1/M2 failures** (status stays connecting, mic permission, etc.) apply here too.
 
