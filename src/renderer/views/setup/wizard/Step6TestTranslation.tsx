@@ -1,5 +1,6 @@
 import { useState, type JSX } from 'react';
 import { useT } from '../../../../shared/i18n/I18nProvider';
+import { ConfirmModal } from '../../../components/ConfirmModal';
 import { rt } from '../../../ipc/client';
 import { useStore } from '../../../state/store';
 import { navigate } from '../shared/useHashRoute';
@@ -54,6 +55,7 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
   const [resA, setResA] = useState<Result>({ status: 'idle' });
   const [resB, setResB] = useState<Result>({ status: 'idle' });
   const [skipped, setSkipped] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const runA = async (): Promise<void> => {
     setResA({ status: 'running' });
@@ -158,11 +160,9 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
       if (!audioReceived) {
         setResB({ status: 'failed', reason: t('setup.test.openaiNoAudio') });
       } else {
-        // window.confirm is the simplest path; UX-bad but plan-prescribed.
-        // TODO(m5): replace with a custom in-wizard confirmation modal.
-        const heard = window.confirm(t('setup.test.confirmHeardPt'));
-        if (heard) setResB({ status: 'passed' });
-        else setResB({ status: 'failed', reason: t('setup.test.userNoAudio') });
+        // Open the modal — runB returns here; user clicks Cancel/Confirm in the
+        // modal callbacks below to finalize.
+        setConfirmOpen(true);
       }
     } catch (e) {
       setResB({ status: 'failed', reason: (e as Error).message });
@@ -172,6 +172,15 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
         await rt.testSessionStop({ direction: 'B' }).catch(() => undefined);
       }
     }
+  };
+
+  const onConfirmHeard = (): void => {
+    setResB({ status: 'passed' });
+    setConfirmOpen(false);
+  };
+  const onCancelHeard = (): void => {
+    setResB({ status: 'failed', reason: t('setup.test.userNoAudio') });
+    setConfirmOpen(false);
   };
 
   const back = (): void => {
@@ -231,6 +240,15 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
           </button>
         </div>
       </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        message={t('setup.test.confirmHeardPt')}
+        confirmLabel={t('common.yes')}
+        cancelLabel={t('common.no')}
+        onConfirm={onConfirmHeard}
+        onCancel={onCancelHeard}
+      />
     </>
   );
 }
