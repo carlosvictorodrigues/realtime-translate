@@ -2168,26 +2168,38 @@ export interface IpcSendMap {
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '../shared/events';
 import type { IpcInvokeMap, IpcSendMap } from './ipc/channels';
-import type { DeviceInventory, SessionState, StartTranslationArgs } from '../shared/types';
 
 const api = {
-  getApiKey: (): Promise<string | undefined> => ipcRenderer.invoke(IPC.GetApiKey),
-  setApiKey: (value: string): Promise<void> => ipcRenderer.invoke(IPC.SetApiKey, { value }),
-  clearApiKey: (): Promise<void> => ipcRenderer.invoke(IPC.ClearApiKey),
-  listDevices: (): Promise<DeviceInventory> => ipcRenderer.invoke(IPC.ListDevices),
-  startTranslation: (args: StartTranslationArgs): Promise<void> =>
+  getApiKey: (): Promise<IpcInvokeMap[typeof IPC.GetApiKey]['result']> =>
+    ipcRenderer.invoke(IPC.GetApiKey),
+  setApiKey: (
+    value: IpcInvokeMap[typeof IPC.SetApiKey]['args']['value'],
+  ): Promise<IpcInvokeMap[typeof IPC.SetApiKey]['result']> =>
+    ipcRenderer.invoke(IPC.SetApiKey, { value }),
+  clearApiKey: (): Promise<IpcInvokeMap[typeof IPC.ClearApiKey]['result']> =>
+    ipcRenderer.invoke(IPC.ClearApiKey),
+  listDevices: (): Promise<IpcInvokeMap[typeof IPC.ListDevices]['result']> =>
+    ipcRenderer.invoke(IPC.ListDevices),
+  startTranslation: (
+    args: IpcInvokeMap[typeof IPC.StartTranslation]['args'],
+  ): Promise<IpcInvokeMap[typeof IPC.StartTranslation]['result']> =>
     ipcRenderer.invoke(IPC.StartTranslation, args),
-  stopTranslation: (): Promise<void> => ipcRenderer.invoke(IPC.StopTranslation),
+  stopTranslation: (): Promise<IpcInvokeMap[typeof IPC.StopTranslation]['result']> =>
+    ipcRenderer.invoke(IPC.StopTranslation),
 
-  onSessionState: (cb: (s: SessionState) => void): (() => void) => {
-    const handler = (_evt: unknown, s: SessionState) => cb(s);
+  onSessionState: (cb: (s: IpcSendMap[typeof IPC.SessionStateChanged]) => void): (() => void) => {
+    const handler = (_evt: unknown, s: IpcSendMap[typeof IPC.SessionStateChanged]): void => cb(s);
     ipcRenderer.on(IPC.SessionStateChanged, handler);
-    return () => ipcRenderer.off(IPC.SessionStateChanged, handler);
+    return (): void => {
+      ipcRenderer.off(IPC.SessionStateChanged, handler);
+    };
   },
-  onTranscript: (cb: (t: { kind: 'input' | 'output'; text: string }) => void): (() => void) => {
-    const handler = (_evt: unknown, t: { kind: 'input' | 'output'; text: string }) => cb(t);
+  onTranscript: (cb: (t: IpcSendMap[typeof IPC.TranscriptDelta]) => void): (() => void) => {
+    const handler = (_evt: unknown, t: IpcSendMap[typeof IPC.TranscriptDelta]): void => cb(t);
     ipcRenderer.on(IPC.TranscriptDelta, handler);
-    return () => ipcRenderer.off(IPC.TranscriptDelta, handler);
+    return (): void => {
+      ipcRenderer.off(IPC.TranscriptDelta, handler);
+    };
   },
 };
 
@@ -2205,18 +2217,34 @@ export type RtApi = typeof api;
 - [ ] **Step 3: Create src/main/ipc/handlers.ts (skeleton — wired in Task 14)**
 
 ```typescript
-import { ipcMain, safeStorage, app } from 'electron';
+import { ipcMain, safeStorage, app, type IpcMainInvokeEvent } from 'electron';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { IPC } from '../../shared/events';
+import type { IpcInvokeMap } from './channels';
 import { ConfigStore } from '../config/configStore';
 import { readEnvApiKey } from '../config/envFallback';
 import type { DeviceInventory, StartTranslationArgs } from '../../shared/types';
 
 interface HandlerDeps {
+  /**
+   * Translation start. The implementation in Task 14's SessionRunner is responsible
+   * for emitting `{ kind: 'error', message }` via the SessionStateChanged channel
+   * BEFORE rejecting this promise. The IPC layer just rethrows.
+   */
   onStart: (args: StartTranslationArgs) => Promise<void>;
   onStop: () => Promise<void>;
   listDevices: () => Promise<DeviceInventory>;
+}
+
+type InvokeHandler<K extends keyof IpcInvokeMap> = (
+  e: IpcMainInvokeEvent,
+  args: IpcInvokeMap[K]['args'],
+) => Promise<IpcInvokeMap[K]['result']> | IpcInvokeMap[K]['result'];
+
+function handle<K extends keyof IpcInvokeMap>(channel: K, handler: InvokeHandler<K>): void {
+  // Cast: ipcMain.handle's signature is too loose to express our typed map.
+  ipcMain.handle(channel, handler as (e: IpcMainInvokeEvent, ...args: unknown[]) => unknown);
 }
 
 export function registerIpcHandlers(deps: HandlerDeps): { configStore: ConfigStore } {
@@ -2237,12 +2265,12 @@ export function registerIpcHandlers(deps: HandlerDeps): { configStore: ConfigSto
     envApiKey: readEnvApiKey(),
   });
 
-  ipcMain.handle(IPC.GetApiKey, () => configStore.getApiKey());
-  ipcMain.handle(IPC.SetApiKey, (_e, args: { value: string }) => configStore.setApiKey(args.value));
-  ipcMain.handle(IPC.ClearApiKey, () => configStore.clearApiKey());
-  ipcMain.handle(IPC.ListDevices, () => deps.listDevices());
-  ipcMain.handle(IPC.StartTranslation, (_e, args: StartTranslationArgs) => deps.onStart(args));
-  ipcMain.handle(IPC.StopTranslation, () => deps.onStop());
+  handle(IPC.GetApiKey, () => configStore.getApiKey());
+  handle(IPC.SetApiKey, (_e, args) => configStore.setApiKey(args.value));
+  handle(IPC.ClearApiKey, () => configStore.clearApiKey());
+  handle(IPC.ListDevices, () => deps.listDevices());
+  handle(IPC.StartTranslation, (_e, args) => deps.onStart(args));
+  handle(IPC.StopTranslation, () => deps.onStop());
 
   return { configStore };
 }

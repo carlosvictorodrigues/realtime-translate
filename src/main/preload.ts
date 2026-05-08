@@ -1,27 +1,36 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import { IPC } from '../shared/events';
-import type { DeviceInventory, SessionState, StartTranslationArgs } from '../shared/types';
+import type { IpcInvokeMap, IpcSendMap } from './ipc/channels';
 
 const api = {
-  getApiKey: (): Promise<string | undefined> => ipcRenderer.invoke(IPC.GetApiKey),
-  setApiKey: (value: string): Promise<void> => ipcRenderer.invoke(IPC.SetApiKey, { value }),
-  clearApiKey: (): Promise<void> => ipcRenderer.invoke(IPC.ClearApiKey),
-  listDevices: (): Promise<DeviceInventory> => ipcRenderer.invoke(IPC.ListDevices),
-  startTranslation: (args: StartTranslationArgs): Promise<void> =>
+  getApiKey: (): Promise<IpcInvokeMap[typeof IPC.GetApiKey]['result']> =>
+    ipcRenderer.invoke(IPC.GetApiKey),
+  setApiKey: (
+    value: IpcInvokeMap[typeof IPC.SetApiKey]['args']['value'],
+  ): Promise<IpcInvokeMap[typeof IPC.SetApiKey]['result']> =>
+    ipcRenderer.invoke(IPC.SetApiKey, { value }),
+  clearApiKey: (): Promise<IpcInvokeMap[typeof IPC.ClearApiKey]['result']> =>
+    ipcRenderer.invoke(IPC.ClearApiKey),
+  listDevices: (): Promise<IpcInvokeMap[typeof IPC.ListDevices]['result']> =>
+    ipcRenderer.invoke(IPC.ListDevices),
+  startTranslation: (
+    args: IpcInvokeMap[typeof IPC.StartTranslation]['args'],
+  ): Promise<IpcInvokeMap[typeof IPC.StartTranslation]['result']> =>
     ipcRenderer.invoke(IPC.StartTranslation, args),
-  stopTranslation: (): Promise<void> => ipcRenderer.invoke(IPC.StopTranslation),
+  stopTranslation: (): Promise<IpcInvokeMap[typeof IPC.StopTranslation]['result']> =>
+    ipcRenderer.invoke(IPC.StopTranslation),
 
-  onSessionState: (cb: (s: SessionState) => void): (() => void) => {
-    const handler = (_evt: unknown, s: SessionState): void => cb(s);
+  onSessionState: (cb: (s: IpcSendMap[typeof IPC.SessionStateChanged]) => void): (() => void) => {
+    const handler = (_evt: unknown, s: IpcSendMap[typeof IPC.SessionStateChanged]): void => cb(s);
     ipcRenderer.on(IPC.SessionStateChanged, handler);
-    return () => {
+    return (): void => {
       ipcRenderer.off(IPC.SessionStateChanged, handler);
     };
   },
-  onTranscript: (cb: (t: { kind: 'input' | 'output'; text: string }) => void): (() => void) => {
-    const handler = (_evt: unknown, t: { kind: 'input' | 'output'; text: string }): void => cb(t);
+  onTranscript: (cb: (t: IpcSendMap[typeof IPC.TranscriptDelta]) => void): (() => void) => {
+    const handler = (_evt: unknown, t: IpcSendMap[typeof IPC.TranscriptDelta]): void => cb(t);
     ipcRenderer.on(IPC.TranscriptDelta, handler);
-    return () => {
+    return (): void => {
       ipcRenderer.off(IPC.TranscriptDelta, handler);
     };
   },

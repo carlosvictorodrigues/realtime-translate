@@ -1,15 +1,31 @@
-import { ipcMain, safeStorage, app } from 'electron';
+import { ipcMain, safeStorage, app, type IpcMainInvokeEvent } from 'electron';
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { IPC } from '../../shared/events';
+import type { IpcInvokeMap } from './channels';
 import { ConfigStore } from '../config/configStore';
 import { readEnvApiKey } from '../config/envFallback';
 import type { DeviceInventory, StartTranslationArgs } from '../../shared/types';
 
 interface HandlerDeps {
+  /**
+   * Translation start. The implementation in Task 14's SessionRunner is responsible
+   * for emitting `{ kind: 'error', message }` via the SessionStateChanged channel
+   * BEFORE rejecting this promise. The IPC layer just rethrows.
+   */
   onStart: (args: StartTranslationArgs) => Promise<void>;
   onStop: () => Promise<void>;
   listDevices: () => Promise<DeviceInventory>;
+}
+
+type InvokeHandler<K extends keyof IpcInvokeMap> = (
+  e: IpcMainInvokeEvent,
+  args: IpcInvokeMap[K]['args'],
+) => Promise<IpcInvokeMap[K]['result']> | IpcInvokeMap[K]['result'];
+
+function handle<K extends keyof IpcInvokeMap>(channel: K, handler: InvokeHandler<K>): void {
+  // Cast: ipcMain.handle's signature is too loose to express our typed map.
+  ipcMain.handle(channel, handler as (e: IpcMainInvokeEvent, ...args: unknown[]) => unknown);
 }
 
 export function registerIpcHandlers(deps: HandlerDeps): { configStore: ConfigStore } {
@@ -30,12 +46,12 @@ export function registerIpcHandlers(deps: HandlerDeps): { configStore: ConfigSto
     envApiKey: readEnvApiKey(),
   });
 
-  ipcMain.handle(IPC.GetApiKey, () => configStore.getApiKey());
-  ipcMain.handle(IPC.SetApiKey, (_e, args: { value: string }) => configStore.setApiKey(args.value));
-  ipcMain.handle(IPC.ClearApiKey, () => configStore.clearApiKey());
-  ipcMain.handle(IPC.ListDevices, () => deps.listDevices());
-  ipcMain.handle(IPC.StartTranslation, (_e, args: StartTranslationArgs) => deps.onStart(args));
-  ipcMain.handle(IPC.StopTranslation, () => deps.onStop());
+  handle(IPC.GetApiKey, () => configStore.getApiKey());
+  handle(IPC.SetApiKey, (_e, args) => configStore.setApiKey(args.value));
+  handle(IPC.ClearApiKey, () => configStore.clearApiKey());
+  handle(IPC.ListDevices, () => deps.listDevices());
+  handle(IPC.StartTranslation, (_e, args) => deps.onStart(args));
+  handle(IPC.StopTranslation, () => deps.onStop());
 
   return { configStore };
 }
