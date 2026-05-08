@@ -42,10 +42,19 @@ export class JsonlSink implements LogSink {
     this.closed = true;
   }
 
-  /** Delete files in logsDir older than `days`. */
+  /** Delete files in logsDir older than `days`.
+   *  Best-effort across the board — readdirSync itself can throw on Windows
+   *  if the dir is briefly locked by AV/OneDrive/indexer. Silently bailing
+   *  is preferable to taking down app startup. */
   private rotate(days: number): void {
     const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-    for (const name of readdirSync(this.cfg.logsDir)) {
+    let names: string[];
+    try {
+      names = readdirSync(this.cfg.logsDir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
       if (!name.endsWith('.jsonl')) continue;
       const full = join(this.cfg.logsDir, name);
       if (full === this.filePath) continue; // never delete our active file
