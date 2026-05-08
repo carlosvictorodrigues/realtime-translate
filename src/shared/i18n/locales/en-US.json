@@ -119,6 +119,8 @@
       "finish": "Finish setup →",
       "cableANotDetected": "CABLE-A recording side not detected",
       "noAudioOnCableA": "No audio detected on CABLE-A Output",
+      "openaiNoAudio": "OpenAI didn't return translated audio. Check your key/quota and the source language.",
+      "noLoopbackDespiteAudio": "Audio was routed but didn't loop back through CABLE-A. Confirm 'Output to Meet' is set to CABLE-A Input.",
       "confirmHeardPt": "Did you hear a phrase in Portuguese in your headphones?",
       "userNoAudio": "Audio not confirmed by user"
     }

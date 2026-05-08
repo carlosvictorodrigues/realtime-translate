@@ -351,7 +351,13 @@ app.whenReady().then(async () => {
   // route it to the desired playback device. Playback streams are reused across
   // chunks of a single test run and torn down on stop.
   const testSessions = new TestSessionRegistry();
-  const testPlaybacks = new Map<string, boolean>();
+  // Promise (not boolean) so concurrent chunks all await the SAME startPlayback
+  // call — otherwise the first chunk awaits, the second/third see flag=false
+  // and fire duplicate startPlayback calls; the offscreen registry tears down
+  // the first handle when the second arrives, so chunks pushed in between get
+  // dropped → choppy audio. With the Promise, every chunk waits for the same
+  // resolution before pushing.
+  const testPlaybacks = new Map<string, Promise<void>>();
 
   const runTestPlayback = async (
     direction: Direction,
@@ -359,10 +365,12 @@ app.whenReady().then(async () => {
     base64: string,
   ): Promise<void> => {
     const streamId = `test-${direction}`;
-    if (!testPlaybacks.get(streamId)) {
-      await offscreenBridge.startPlayback(streamId, deviceId);
-      testPlaybacks.set(streamId, true);
+    let p = testPlaybacks.get(streamId);
+    if (!p) {
+      p = offscreenBridge.startPlayback(streamId, deviceId);
+      testPlaybacks.set(streamId, p);
     }
+    await p;
     offscreenBridge.pushPlayback(streamId, base64);
   };
 

@@ -119,6 +119,8 @@
       "finish": "Concluir setup →",
       "cableANotDetected": "Lado de captura do CABLE-A não detectado",
       "noAudioOnCableA": "Nenhum áudio detectado no CABLE-A Output",
+      "openaiNoAudio": "OpenAI não retornou áudio traduzido. Verifique sua chave/quota e o idioma de origem.",
+      "noLoopbackDespiteAudio": "Áudio foi roteado mas não voltou pelo CABLE-A. Confirme que 'Saída pro Meet' aponta pra CABLE-A Input.",
       "confirmHeardPt": "Você ouviu uma frase em português no seu fone?",
       "userNoAudio": "Áudio não confirmado pelo usuário"
     }

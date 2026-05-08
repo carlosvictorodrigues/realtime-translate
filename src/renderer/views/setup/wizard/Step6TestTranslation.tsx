@@ -16,6 +16,17 @@ interface Result { status: TestStatus; reason?: string }
  * setup-view.html via `file://` in production where a leading `/` resolves to
  * the drive root, not the renderer's outDir. Same fix as Task 10's PNGs.
  */
+// 50ms of PCM16 silence at 24kHz mono = 1200 samples × 2 bytes = 2400 bytes of zero.
+// Used to pad the end of the test WAV so OpenAI's server VAD detects end-of-speech
+// and finalizes the translation; without this the model can hang waiting for more
+// input until the WS times out.
+const SILENCE_CHUNK_BASE64 = (() => {
+  let bin = '';
+  for (let i = 0; i < 2400; i++) bin += '\0';
+  return btoa(bin);
+})();
+const SILENCE_PAD_CHUNKS = 10; // 10 × 50ms = 500ms trailing silence
+
 async function loadTestWavAsPcmChunks(filename: string): Promise<string[]> {
   const url = `./test/${filename}`;
   const response = await fetch(url);
@@ -54,17 +65,28 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
     }
     let offTestAudio: (() => void) | undefined;
     let started = false;
+    let audioReceived = false;
     try {
       const chunks = await loadTestWavAsPcmChunks('test-pt.wav');
       await rt.testSessionStart({ direction: 'A', sourceLang: 'pt', targetLang: 'en' });
       started = true;
 
       offTestAudio = rt.onTestAudio('A', (b64) => {
-        void rt.testRoutePlayback({ direction: 'A', deviceId: selectedToMeet, base64: b64 });
+        audioReceived = true;
+        rt.testRoutePlayback({ direction: 'A', deviceId: selectedToMeet, base64: b64 })
+          .catch((err: unknown) => {
+            // eslint-disable-next-line no-console
+            console.error('[step6] testRoutePlayback A failed', err);
+          });
       });
 
       for (const chunk of chunks) {
         await rt.testSessionInject({ direction: 'A', base64: chunk });
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      // Trailing silence padding so server VAD detects end-of-input.
+      for (let i = 0; i < SILENCE_PAD_CHUNKS; i++) {
+        await rt.testSessionInject({ direction: 'A', base64: SILENCE_CHUNK_BASE64 });
         await new Promise((r) => setTimeout(r, 50));
       }
       await rt.testSessionInputDone({ direction: 'A' });
@@ -76,11 +98,12 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
       const result = await rt.loopbackStart({
         deviceId: cableARecording,
         thresholdRms: 0.01,
-        timeoutMs: 10000,
+        timeoutMs: 20000,
       });
 
       if (result.detected) setResA({ status: 'passed' });
-      else setResA({ status: 'failed', reason: t('setup.test.noAudioOnCableA') });
+      else if (!audioReceived) setResA({ status: 'failed', reason: t('setup.test.openaiNoAudio') });
+      else setResA({ status: 'failed', reason: t('setup.test.noLoopbackDespiteAudio') });
     } catch (e) {
       setResA({ status: 'failed', reason: (e as Error).message });
     } finally {
@@ -101,17 +124,28 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
     }
     let offTestAudio: (() => void) | undefined;
     let started = false;
+    let audioReceived = false;
     try {
       const chunks = await loadTestWavAsPcmChunks('test-en.wav');
       await rt.testSessionStart({ direction: 'B', sourceLang: 'en', targetLang: 'pt' });
       started = true;
 
       offTestAudio = rt.onTestAudio('B', (b64) => {
-        void rt.testRoutePlayback({ direction: 'B', deviceId: selectedHeadset, base64: b64 });
+        audioReceived = true;
+        rt.testRoutePlayback({ direction: 'B', deviceId: selectedHeadset, base64: b64 })
+          .catch((err: unknown) => {
+            // eslint-disable-next-line no-console
+            console.error('[step6] testRoutePlayback B failed', err);
+          });
       });
 
       for (const chunk of chunks) {
         await rt.testSessionInject({ direction: 'B', base64: chunk });
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      // Trailing silence padding so server VAD detects end-of-input.
+      for (let i = 0; i < SILENCE_PAD_CHUNKS; i++) {
+        await rt.testSessionInject({ direction: 'B', base64: SILENCE_CHUNK_BASE64 });
         await new Promise((r) => setTimeout(r, 50));
       }
       await rt.testSessionInputDone({ direction: 'B' });
@@ -119,11 +153,17 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
       // Wait ~5s for translation to play.
       await new Promise((r) => setTimeout(r, 5000));
 
-      // window.confirm is the simplest path; UX-bad but plan-prescribed.
-      // TODO(m5): replace with a custom in-wizard confirmation modal.
-      const heard = window.confirm(t('setup.test.confirmHeardPt'));
-      if (heard) setResB({ status: 'passed' });
-      else setResB({ status: 'failed', reason: t('setup.test.userNoAudio') });
+      // If OpenAI never returned audio, no point asking the user — short-circuit
+      // with the more accurate failure reason.
+      if (!audioReceived) {
+        setResB({ status: 'failed', reason: t('setup.test.openaiNoAudio') });
+      } else {
+        // window.confirm is the simplest path; UX-bad but plan-prescribed.
+        // TODO(m5): replace with a custom in-wizard confirmation modal.
+        const heard = window.confirm(t('setup.test.confirmHeardPt'));
+        if (heard) setResB({ status: 'passed' });
+        else setResB({ status: 'failed', reason: t('setup.test.userNoAudio') });
+      }
     } catch (e) {
       setResB({ status: 'failed', reason: (e as Error).message });
     } finally {
