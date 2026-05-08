@@ -16,7 +16,8 @@ export function FloatingWidget(): JSX.Element {
     sourceLang, targetLang,
     selectedMic, selectedToMeet, selectedFromMeet, selectedHeadset,
     stateA, stateB, latencyMs,
-    setDirectionState, setLatency, hydrate,
+    update,
+    setDirectionState, setLatency, setUpdateAvailable, setUpdateReady, hydrate,
   } = useStore();
   const t = useT();
 
@@ -31,6 +32,16 @@ export function FloatingWidget(): JSX.Element {
     return (): void => {
       offState();
       offLat();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const offAvail = rt.onUpdateAvailable((info) => setUpdateAvailable(info));
+    const offDl = rt.onUpdateDownloaded((info) => setUpdateReady(info));
+    return (): void => {
+      offAvail();
+      offDl();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -95,6 +106,23 @@ export function FloatingWidget(): JSX.Element {
       )}
       <LatencyMeter ms={avgLatency} />
       <CostMeter stateA={stateA} stateB={stateB} />
+      {update.ready ? (
+        <button
+          type="button"
+          className="rt-update-badge rt-update-badge--ready"
+          onClick={(): void => { void rt.applyUpdate(); }}
+          title={t('update.tooltipReady')}
+        >
+          ↑ {t('update.ready', { version: update.ready.version })}
+        </button>
+      ) : update.available ? (
+        <span
+          className="rt-update-badge rt-update-badge--downloading"
+          title={t('update.tooltipAvailable', { version: update.available.version })}
+        >
+          ↑ {t('update.available', { version: update.available.version })}
+        </span>
+      ) : null}
       <ActionButton state={bar.kind} onClick={(): void => { void onAction(); }} />
       <SettingsButton onClick={(): void => { void rt.openSetupView(); }} />
     </div>

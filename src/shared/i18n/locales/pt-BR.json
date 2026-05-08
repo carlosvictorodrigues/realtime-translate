@@ -149,5 +149,11 @@
       "quit": "Sair do app",
       "close": "Fechar"
     }
+  },
+  "update": {
+    "available": "Baixando v{{version}}…",
+    "ready": "Reiniciar para atualizar v{{version}}",
+    "tooltipAvailable": "Atualização v{{version}} sendo baixada em segundo plano",
+    "tooltipReady": "Clique para reiniciar e aplicar a atualização"
   }
 }

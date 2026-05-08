@@ -149,5 +149,11 @@
       "quit": "Quit app",
       "close": "Close"
     }
+  },
+  "update": {
+    "available": "Downloading v{{version}}…",
+    "ready": "Restart to update v{{version}}",
+    "tooltipAvailable": "Update v{{version}} downloading in background",
+    "tooltipReady": "Click to restart and apply the update"
   }
 }

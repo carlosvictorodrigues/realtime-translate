@@ -2,6 +2,11 @@ import { create } from 'zustand';
 import type { DeviceInventory, Direction, SessionState } from '../../shared/types';
 import type { LanguageCode } from '../../shared/languages';
 
+interface UpdateState {
+  available: { version: string } | null;
+  ready: { version: string } | null;
+}
+
 interface AppState {
   hasApiKey: boolean;
   apiKeyHint: string | undefined;
@@ -19,6 +24,11 @@ interface AppState {
   latencyMs: { A: number | undefined; B: number | undefined };
   hydrated: boolean;
 
+  // Auto-update notification (M5 Task 7). Both fields can hold values
+  // simultaneously: `available` fires while download progresses, then
+  // `ready` fires once the update has been downloaded and is installable.
+  update: UpdateState;
+
   setHasApiKey(value: boolean): void;
   setApiKeyHint(value: string | undefined): void;
   setDevices(value: DeviceInventory): void;
@@ -30,6 +40,8 @@ interface AppState {
   setSelectedHeadset(deviceId: string): void;
   setDirectionState(d: Direction, state: SessionState): void;
   setLatency(direction: Direction, averageMs: number): void;
+  setUpdateAvailable(info: { version: string }): void;
+  setUpdateReady(info: { version: string }): void;
   hydrate(): Promise<void>;
 }
 
@@ -57,6 +69,7 @@ export const useStore = create<AppState>((set) => ({
   stateB: { kind: 'idle' },
   latencyMs: { A: undefined, B: undefined },
   hydrated: false,
+  update: { available: null, ready: null },
   setHasApiKey: (hasApiKey) => set({ hasApiKey }),
   setApiKeyHint: (apiKeyHint) => set({ apiKeyHint }),
   setDevices: (devices) => set({ devices }),
@@ -91,6 +104,10 @@ export const useStore = create<AppState>((set) => ({
       ...s,
       latencyMs: { ...s.latencyMs, [direction]: averageMs },
     })),
+  setUpdateAvailable: (info) =>
+    set((s) => ({ ...s, update: { ...s.update, available: info } })),
+  setUpdateReady: (info) =>
+    set((s) => ({ ...s, update: { ...s.update, ready: info } })),
   hydrate: async () => {
     const prefs = await window.rt.loadPrefs();
     set((s) => ({
