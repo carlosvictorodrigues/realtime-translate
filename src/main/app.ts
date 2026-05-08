@@ -210,9 +210,17 @@ async function createFloatingWidget(prefsStore: UserPrefsStore): Promise<Browser
     if (moveTimer) clearTimeout(moveTimer);
     moveTimer = setTimeout(() => prefsStore.setWidgetPosition({ x, y }), 300);
   });
+  win.on('closed', () => {
+    if (moveTimer) clearTimeout(moveTimer);
+    floatingWidget = null;
+  });
 
-  await win.loadURL(FLOATING_WIDGET_URL);
+  // Assign before awaiting loadURL so a concurrent call (e.g. double-click on
+  // "Concluir setup") sees the in-flight window and short-circuits via the
+  // guard above instead of constructing a second BrowserWindow. Mirrors the
+  // synchronous-assignment pattern in createSetupView.
   floatingWidget = win;
+  await win.loadURL(FLOATING_WIDGET_URL);
   return win;
 }
 
