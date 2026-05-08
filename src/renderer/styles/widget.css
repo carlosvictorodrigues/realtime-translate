@@ -138,6 +138,7 @@ html, body, #root {
   color: rgba(244, 244, 245, 0.5);
 }
 
+/* Cost tag */
 .rt-cost {
   font-family: 'Cascadia Code', Consolas, monospace;
   font-size: 10px;
