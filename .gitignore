@@ -5,9 +5,10 @@ node_modules/
 # build outputs
 dist/
 out/
-build/
 release/
 *.tsbuildinfo
+# build/ is the electron-builder buildResources directory (icon, installer scripts).
+# Tracked, not ignored. Historical gitignore entry removed in M5 Task 2.
 
 # env / secrets
 .env
