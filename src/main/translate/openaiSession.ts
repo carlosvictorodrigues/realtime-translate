@@ -1,6 +1,7 @@
 import type { SessionState } from '../../shared/types';
 import type { LanguageCode } from '../../shared/languages';
 import { ExponentialBackoff, type BackoffConfig } from '../util/retryPolicy';
+import type { Logger } from '../util/logger';
 
 export interface WebSocketLike {
   readonly readyState: number;
@@ -29,6 +30,8 @@ export interface OpenAISessionConfig {
   voice?: string;
   /** Reconnect policy (spec §7). Default: 1s base / 30s cap / 5 attempts. */
   backoff?: BackoffConfig;
+  /** Optional logger; if absent, all warn/error events go nowhere. */
+  logger?: Logger;
 }
 
 const ENDPOINT = 'wss://api.openai.com/v1/realtime/translations?model=gpt-realtime-translate';
@@ -82,9 +85,7 @@ export class OpenAISession {
         // disconnect would otherwise produce hundreds of identical warnings.
         if (!this.hasLoggedOverflow) {
           this.hasLoggedOverflow = true;
-          // TODO(Task 14): replace with structured logger
-          // eslint-disable-next-line no-console
-          console.warn('OpenAISession: pending audio buffer overflow, dropping oldest');
+          this.cfg.logger?.warn('pending_audio_overflow');
         }
       }
       this.pendingAudio.push(base64);
@@ -167,9 +168,7 @@ export class OpenAISession {
       event = JSON.parse(raw);
     } catch {
       // M4: best-effort warning. Don't include the raw payload — could leak transcript.
-      // TODO(Task 14): replace with structured logger
-      // eslint-disable-next-line no-console
-      console.warn('OpenAISession: malformed message ignored');
+      this.cfg.logger?.warn('malformed_message_ignored');
       return;
     }
     if (event.type === 'session.output_audio.delta' && event.delta) {

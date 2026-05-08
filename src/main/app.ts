@@ -7,6 +7,8 @@ import { type WebSocketLike, type WebSocketFactory } from './translate/openaiSes
 import { type OffscreenController } from './translate/audioPipeline';
 import { SessionManager } from './translate/sessionManager';
 import { detectVirtualCables, type DeviceInfo } from './audio/deviceDetector';
+import { createLogger, LogLevel } from './util/logger';
+import { JsonlSink } from './util/jsonlSink';
 import { IPC } from '../shared/events';
 import type {
   DeviceInventory,
@@ -25,6 +27,7 @@ const OFFSCREEN_URL = DEV_BASE
 
 let mainWindow: BrowserWindow | null = null;
 let offscreenWindow: BrowserWindow | null = null;
+let logSink: JsonlSink | undefined;
 
 const wsFactory: WebSocketFactory = (url, headers) => {
   const ws = new WebSocket(url, { headers });
@@ -167,6 +170,11 @@ app.whenReady().then(async () => {
   await createWindows();
   if (!offscreenWindow || !mainWindow) throw new Error('windows not created');
 
+  const logsDir = join(app.getPath('userData'), 'logs');
+  const sessionId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`;
+  logSink = new JsonlSink({ logsDir, sessionId });
+  const logger = createLogger({ source: 'main', sink: logSink, minLevel: LogLevel.Info });
+
   const offscreenBridge = new OffscreenBridge(offscreenWindow);
 
   const emitDirectionalState = (s: DirectionalState): void => {
@@ -216,6 +224,7 @@ app.whenReady().then(async () => {
         wsFactory,
         onDirectionalState: emitDirectionalState,
         onTranscript: emitTranscript,
+        logger,
       });
       try {
         await manager.start();
@@ -226,8 +235,9 @@ app.whenReady().then(async () => {
         try {
           await manager.stop();
         } catch (stopErr) {
-          // eslint-disable-next-line no-console
-          console.error('SessionManager.stop() failed during start-rejection cleanup', stopErr);
+          logger.error('session_manager_stop_failed', {
+            message: stopErr instanceof Error ? stopErr.message : String(stopErr),
+          });
         }
         manager = undefined;
         throw err;
@@ -244,4 +254,8 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', async () => {
+  await logSink?.close();
 });

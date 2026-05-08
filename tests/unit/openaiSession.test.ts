@@ -38,6 +38,13 @@ class FakeWebSocket implements WebSocketLike {
 
 const fakeFactory: WebSocketFactory = (url, headers) => new FakeWebSocket(url, headers);
 
+const fakeLogger = (): { debug: ReturnType<typeof vi.fn>; info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> } => ({
+  debug: vi.fn(),
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+});
+
 describe('OpenAISession', () => {
   let events: SessionEvents;
   let onState: ReturnType<typeof vi.fn>;
@@ -430,48 +437,28 @@ describe('OpenAISession', () => {
   });
 
   it('overflow log fires once per overflow event, not per chunk', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const session = new OpenAISession({
-        apiKey: 'sk',
-        sourceLang: 'pt',
-        targetLang: 'en',
-        events,
-        wsFactory: fakeFactory,
-      });
-      session.start();
-      // 5 chunks past the cap → without throttling this would warn 5 times.
-      for (let i = 0; i < 205; i++) {
-        session.appendAudio(`chunk-${i}`);
-      }
-      expect(warnSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      warnSpy.mockRestore();
-    }
+    const logger = fakeLogger();
+    const session = new OpenAISession({
+      apiKey: 'sk', sourceLang: 'pt', targetLang: 'en', events,
+      wsFactory: fakeFactory, logger,
+    });
+    session.start();
+    for (let i = 0; i < 205; i++) session.appendAudio(`chunk-${i}`);
+    expect(logger.warn).toHaveBeenCalledTimes(1);
+    expect(logger.warn).toHaveBeenCalledWith('pending_audio_overflow');
   });
 
   it('warns on malformed JSON messages instead of silently dropping', () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    try {
-      const session = new OpenAISession({
-        apiKey: 'sk',
-        sourceLang: 'pt',
-        targetLang: 'en',
-        events,
-        wsFactory: fakeFactory,
-      });
-      session.start();
-      const ws = FakeWebSocket.instances[0]!;
-      ws.simulateOpen();
-      // Manually invoke onmessage with invalid JSON — bypass simulateMessage.
-      ws.onmessage?.('not-valid-json{{{');
-      expect(warnSpy).toHaveBeenCalled();
-      // Sanity: warning string must NOT include the raw payload (no transcript leak).
-      const argText = warnSpy.mock.calls.map((call) => String(call[0])).join(' ');
-      expect(argText).not.toContain('not-valid-json');
-    } finally {
-      warnSpy.mockRestore();
-    }
+    const logger = fakeLogger();
+    const session = new OpenAISession({
+      apiKey: 'sk', sourceLang: 'pt', targetLang: 'en', events,
+      wsFactory: fakeFactory, logger,
+    });
+    session.start();
+    const ws = FakeWebSocket.instances[0]!;
+    ws.simulateOpen();
+    ws.onmessage?.('not-valid-json{{{');
+    expect(logger.warn).toHaveBeenCalledWith('malformed_message_ignored');
   });
 
   it('does not emit active when onopen fires late after stop()', () => {

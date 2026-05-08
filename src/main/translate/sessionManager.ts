@@ -3,6 +3,7 @@ import { AudioPipeline } from './audioPipeline';
 import { OpenAISession, type WebSocketFactory } from './openaiSession';
 import type { Direction, SessionState } from '../../shared/types';
 import type { LanguageCode } from '../../shared/languages';
+import type { Logger } from '../util/logger';
 
 export interface SessionManagerConfig {
   apiKey: string;
@@ -16,6 +17,7 @@ export interface SessionManagerConfig {
   wsFactory: WebSocketFactory;
   onDirectionalState: (s: { direction: Direction; state: SessionState }) => void;
   onTranscript: (t: { direction: Direction; kind: 'input' | 'output'; text: string }) => void;
+  logger?: Logger;
 }
 
 interface DirectionContext {
@@ -111,6 +113,7 @@ export class SessionManager {
           this.cfg.onTranscript({ direction, kind: t.kind, text: t.text }),
       },
       wsFactory: this.cfg.wsFactory,
+      ...(this.cfg.logger ? { logger: this.cfg.logger } : {}),
     });
     const pipeline = new AudioPipeline({
       streamId: direction,
