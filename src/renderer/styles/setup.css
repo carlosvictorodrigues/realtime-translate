@@ -174,7 +174,7 @@
   background: rgba(110, 127, 196, 0.12);
   border-color: rgba(110, 127, 196, 0.3);
 }
-.flow-node__icon { font-size: 24px; margin-bottom: 6px; }
+.flow-node__icon { font-size: 24px; margin-bottom: 6px; font-family: 'Segoe UI Emoji', 'Apple Color Emoji', emoji, sans-serif; }
 .flow-node__label { font-size: 11px; font-weight: 500; color: var(--text-primary); }
 .flow-node__meta { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
 .flow-arrow {
