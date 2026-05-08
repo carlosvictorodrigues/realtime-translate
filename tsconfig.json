@@ -15,7 +15,7 @@
     "paths": {
       "@main/*": ["src/main/*"],
       "@renderer/*": ["src/renderer/*"],
-      "@offscreen/*": ["src/offscreen/*"],
+      "@offscreen/*": ["src/renderer/offscreen/*"],
       "@shared/*": ["src/shared/*"]
     }
   }

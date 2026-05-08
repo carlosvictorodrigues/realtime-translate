@@ -48,7 +48,7 @@ export default defineConfig({
     resolve: {
       alias: {
         '@renderer': resolve('src/renderer'),
-        '@offscreen': resolve('src/offscreen'),
+        '@offscreen': resolve('src/renderer/offscreen'),
         '@shared': resolve('src/shared')
       }
     }
