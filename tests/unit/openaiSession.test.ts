@@ -477,4 +477,68 @@ describe('OpenAISession', () => {
     // Last state must be idle (from stop), not active
     expect(onState).toHaveBeenLastCalledWith({ kind: 'idle' });
   });
+
+  it('measures and emits latency: t1 - t0 average over last 5 turns', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-08T00:00:00Z'));
+    try {
+      const onLatency = vi.fn();
+      const session = new OpenAISession({
+        apiKey: 'sk', sourceLang: 'pt', targetLang: 'en',
+        events: { ...events, onLatencyMeasured: onLatency },
+        wsFactory: fakeFactory,
+      });
+      session.start();
+      const ws = FakeWebSocket.instances[0]!;
+      ws.simulateOpen();
+
+      // Turn 1: send audio at t=0, receive delta at t=1500ms
+      session.appendAudio('chunk-1');
+      vi.advanceTimersByTime(1500);
+      ws.simulateMessage({ type: 'session.output_audio.delta', delta: 'reply-1' });
+
+      // Turn 1 complete — average of [1500] = 1500
+      expect(onLatency).toHaveBeenLastCalledWith({ averageMs: 1500, sampleCount: 1 });
+
+      // Turn 2: send at +500ms, receive at +2000ms (turn duration 1500ms)
+      vi.advanceTimersByTime(500);
+      session.appendAudio('chunk-2');
+      vi.advanceTimersByTime(1500);
+      ws.simulateMessage({ type: 'session.output_audio.delta', delta: 'reply-2' });
+
+      expect(onLatency).toHaveBeenLastCalledWith({ averageMs: 1500, sampleCount: 2 });
+
+      // Turn 3-7: vary durations to verify ring buffer of 5
+      for (let i = 0; i < 5; i++) {
+        vi.advanceTimersByTime(100);
+        session.appendAudio(`chunk-extra-${i}`);
+        vi.advanceTimersByTime(1000 + i * 200); // 1000, 1200, 1400, 1600, 1800
+        ws.simulateMessage({ type: 'session.output_audio.delta', delta: `reply-extra-${i}` });
+      }
+
+      // 7 turns total: [1500, 1500, 1000, 1200, 1400, 1600, 1800]. Ring buffer of 5
+      // keeps the 5 most recent: [1000, 1200, 1400, 1600, 1800].
+      // Average = (1000 + 1200 + 1400 + 1600 + 1800) / 5 = 1400
+      const lastCall = onLatency.mock.calls.at(-1)![0];
+      expect(lastCall.sampleCount).toBe(5);
+      expect(lastCall.averageMs).toBe(1400);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('does not emit latency for deltas without a preceding appendAudio', () => {
+    // Edge: server might send deltas before any audio (warmup ping). Don't crash.
+    const onLatency = vi.fn();
+    const session = new OpenAISession({
+      apiKey: 'sk', sourceLang: 'pt', targetLang: 'en',
+      events: { ...events, onLatencyMeasured: onLatency },
+      wsFactory: fakeFactory,
+    });
+    session.start();
+    const ws = FakeWebSocket.instances[0]!;
+    ws.simulateOpen();
+    ws.simulateMessage({ type: 'session.output_audio.delta', delta: 'unsolicited' });
+    expect(onLatency).not.toHaveBeenCalled();
+  });
 });

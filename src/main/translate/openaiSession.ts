@@ -19,6 +19,8 @@ export interface SessionEvents {
   onState: (s: SessionState) => void;
   onAudio: (base64: string) => void;
   onTranscript: (t: { kind: 'input' | 'output'; text: string }) => void;
+  /** Optional: emitted after each turn (audio sent → delta received). */
+  onLatencyMeasured?: (m: { averageMs: number; sampleCount: number }) => void;
 }
 
 export interface OpenAISessionConfig {
@@ -57,6 +59,10 @@ export class OpenAISession {
   /** True while we're in an overflow event — gates the warn log to once per event. Reset
    * on successful (re)open. */
   private hasLoggedOverflow = false;
+  /** Timestamp of first chunk after the last received delta (start of current turn). */
+  private turnStartMs: number | undefined;
+  /** Ring buffer of the most recent turn latencies, max 5. */
+  private readonly recentLatenciesMs: number[] = [];
 
   constructor(private readonly cfg: OpenAISessionConfig) {
     this.backoff = new ExponentialBackoff(cfg.backoff ?? DEFAULT_BACKOFF);
@@ -73,6 +79,8 @@ export class OpenAISession {
     this.hasLoggedOverflow = false;
     this.backoff.reset();
     this.attemptCount = 0;
+    this.recentLatenciesMs.length = 0;
+    this.turnStartMs = undefined;
     this.connect();
   }
 
@@ -90,6 +98,11 @@ export class OpenAISession {
       }
       this.pendingAudio.push(base64);
       return;
+    }
+    // Mark t0 of the current turn — only if we don't already have one in flight.
+    // Reset happens when handleMessage receives output_audio.delta.
+    if (this.turnStartMs === undefined) {
+      this.turnStartMs = Date.now();
     }
     this.sendRaw({ type: 'session.input_audio_buffer.append', audio: base64 });
   }
@@ -172,6 +185,19 @@ export class OpenAISession {
       return;
     }
     if (event.type === 'session.output_audio.delta' && event.delta) {
+      // Latency measurement: t1 - t0 for this turn.
+      if (this.turnStartMs !== undefined) {
+        const latency = Date.now() - this.turnStartMs;
+        this.recentLatenciesMs.push(latency);
+        if (this.recentLatenciesMs.length > 5) this.recentLatenciesMs.shift();
+        const sum = this.recentLatenciesMs.reduce((a, b) => a + b, 0);
+        const average = Math.round(sum / this.recentLatenciesMs.length);
+        this.cfg.events.onLatencyMeasured?.({
+          averageMs: average,
+          sampleCount: this.recentLatenciesMs.length,
+        });
+        this.turnStartMs = undefined; // ready to start next turn on next appendAudio
+      }
       this.cfg.events.onAudio(event.delta);
     } else if (event.type === 'session.input_transcript.delta' && event.delta) {
       this.cfg.events.onTranscript({ kind: 'input', text: event.delta });
