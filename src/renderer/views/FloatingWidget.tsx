@@ -38,7 +38,10 @@ export function FloatingWidget(): JSX.Element {
     : undefined;
 
   const onAction = async (): Promise<void> => {
-    if (bar.kind === 'idle') {
+    if (bar.kind === 'idle' || bar.kind === 'error') {
+      // Both Start and Retry need full device selection. If devices are
+      // missing (e.g., user cleared prefs, devices unplugged), redirect to
+      // SetupView instead of passing empty strings down to the audio pipeline.
       if (!selectedMic || !selectedToMeet || !selectedFromMeet || !selectedHeadset) {
         await rt.openSetupView();
         return;
@@ -50,14 +53,6 @@ export function FloatingWidget(): JSX.Element {
         fromMeetDeviceId: selectedFromMeet,
         headsetDeviceId: selectedHeadset,
       });
-    } else if (bar.kind === 'error') {
-      await rt.startTranslation({
-        sourceLang, targetLang,
-        micDeviceId: selectedMic ?? '',
-        toMeetDeviceId: selectedToMeet ?? '',
-        fromMeetDeviceId: selectedFromMeet ?? '',
-        headsetDeviceId: selectedHeadset ?? '',
-      });
     } else {
       await rt.stopTranslation();
     }
@@ -67,12 +62,15 @@ export function FloatingWidget(): JSX.Element {
     <div className={`rt-bar rt-bar--${bar.kind}`} role="status">
       <Orb state={bar.kind} />
       {bar.kind === 'active' && <Waveform />}
-      {(bar.kind === 'idle' || bar.kind === 'active' || bar.kind === 'connecting') && (
+      {(bar.kind === 'idle' || bar.kind === 'active') && (
         <LanguagePair
           source={sourceLang}
           target={targetLang}
           onClick={(): void => { void rt.openSetupView(); }}
         />
+      )}
+      {bar.kind === 'connecting' && (
+        <span className="rt-status">Conectando…</span>
       )}
       {bar.kind === 'reconnecting' && (
         <span className="rt-status">
