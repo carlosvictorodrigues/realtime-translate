@@ -138,6 +138,13 @@ html, body, #root {
   color: rgba(244, 244, 245, 0.5);
 }
 
+.rt-cost {
+  font-family: 'Cascadia Code', Consolas, monospace;
+  font-size: 10px;
+  color: rgba(244, 244, 245, 0.4);
+  letter-spacing: 0.02em;
+}
+
 /* Action button */
 .rt-action {
   width: 26px;

@@ -6,6 +6,7 @@ import { Orb } from '../components/Orb';
 import { Waveform } from '../components/Waveform';
 import { LanguagePair } from '../components/LanguagePair';
 import { LatencyMeter } from '../components/LatencyMeter';
+import { CostMeter } from '../components/CostMeter';
 import { ActionButton } from '../components/ActionButton';
 import { SettingsButton } from '../components/SettingsButton';
 import { useT } from '../../shared/i18n/I18nProvider';
@@ -93,6 +94,7 @@ export function FloatingWidget(): JSX.Element {
         </span>
       )}
       <LatencyMeter ms={avgLatency} />
+      <CostMeter stateA={stateA} stateB={stateB} />
       <ActionButton state={bar.kind} onClick={(): void => { void onAction(); }} />
       <SettingsButton onClick={(): void => { void rt.openSetupView(); }} />
     </div>
