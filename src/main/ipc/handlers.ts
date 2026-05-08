@@ -5,15 +5,15 @@ import { IPC } from '../../shared/events';
 import type { IpcInvokeMap } from './channels';
 import { ConfigStore } from '../config/configStore';
 import { readEnvApiKey } from '../config/envFallback';
-import type { DeviceInventory, StartTranslationArgs } from '../../shared/types';
+import type { BidirectionalArgs, DeviceInventory } from '../../shared/types';
 
 interface HandlerDeps {
   /**
-   * Translation start. The implementation in Task 14's SessionRunner is responsible
-   * for emitting `{ kind: 'error', message }` via the SessionStateChanged channel
+   * Translation start. The implementation in SessionManager is responsible for emitting
+   * `{ direction, state: { kind: 'error' } }` via the DirectionalStateChanged channel
    * BEFORE rejecting this promise. The IPC layer just rethrows.
    */
-  onStart: (args: StartTranslationArgs) => Promise<void>;
+  onStart: (args: BidirectionalArgs) => Promise<void>;
   onStop: () => Promise<void>;
   listDevices: () => Promise<DeviceInventory>;
 }
@@ -46,7 +46,11 @@ export function registerIpcHandlers(deps: HandlerDeps): { configStore: ConfigSto
     envApiKey: readEnvApiKey(),
   });
 
-  handle(IPC.GetApiKey, () => configStore.getApiKey());
+  handle(IPC.GetApiKeyStatus, () => configStore.getApiKey() !== undefined);
+  handle(IPC.GetApiKeyHint, () => {
+    const key = configStore.getApiKey();
+    return key && key.length > 4 ? key.slice(-4) : undefined;
+  });
   handle(IPC.SetApiKey, (_e, args) => configStore.setApiKey(args.value));
   handle(IPC.ClearApiKey, () => configStore.clearApiKey());
   handle(IPC.ListDevices, () => deps.listDevices());

@@ -1,16 +1,17 @@
 import { IPC } from '../../shared/events';
-import type { DeviceInventory, SessionState, StartTranslationArgs } from '../../shared/types';
+import type { BidirectionalArgs, DeviceInventory, DirectionalState } from '../../shared/types';
 
 export interface IpcInvokeMap {
-  [IPC.GetApiKey]: { args: void; result: string | undefined };
+  [IPC.GetApiKeyStatus]: { args: void; result: boolean };
+  [IPC.GetApiKeyHint]: { args: void; result: string | undefined };
   [IPC.SetApiKey]: { args: { value: string }; result: void };
   [IPC.ClearApiKey]: { args: void; result: void };
   [IPC.ListDevices]: { args: void; result: DeviceInventory };
-  [IPC.StartTranslation]: { args: StartTranslationArgs; result: void };
+  [IPC.StartTranslation]: { args: BidirectionalArgs; result: void };
   [IPC.StopTranslation]: { args: void; result: void };
 }
 
 export interface IpcSendMap {
-  [IPC.SessionStateChanged]: SessionState;
-  [IPC.TranscriptDelta]: { kind: 'input' | 'output'; text: string };
+  [IPC.DirectionalStateChanged]: DirectionalState;
+  [IPC.TranscriptDelta]: { direction: 'A' | 'B'; kind: 'input' | 'output'; text: string };
 }

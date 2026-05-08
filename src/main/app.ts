@@ -12,10 +12,11 @@ import { AudioPipeline, type OffscreenController } from './translate/audioPipeli
 import { detectVirtualCables, type DeviceInfo } from './audio/deviceDetector';
 import { IPC } from '../shared/events';
 import type {
+  BidirectionalArgs,
   DeviceInventory,
   DeviceSummary,
+  DirectionalState,
   SessionState,
-  StartTranslationArgs,
 } from '../shared/types';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -101,7 +102,7 @@ class SessionRunner {
     private readonly emitTranscript: (t: { kind: 'input' | 'output'; text: string }) => void,
   ) {}
 
-  async start(args: StartTranslationArgs): Promise<void> {
+  async start(args: BidirectionalArgs): Promise<void> {
     const apiKey = this.getApiKey();
     if (!apiKey) {
       const message = 'No API key configured';
@@ -119,11 +120,13 @@ class SessionRunner {
       },
       wsFactory,
     });
+    // M1 interim shim: route Direction A's output to the to-Meet cable.
+    // M2's SessionManager (Task 6) properly drives both directions.
     this.pipeline = new AudioPipeline({
       offscreen: this.offscreen,
       session: this.session,
       micDeviceId: args.micDeviceId,
-      outputDeviceId: args.outputDeviceId,
+      outputDeviceId: args.toMeetDeviceId,
     });
     try {
       await this.pipeline.start();
@@ -215,14 +218,17 @@ app.whenReady().then(async () => {
 
   const offscreenBridge = new OffscreenBridge(offscreenWindow);
 
+  // M1 interim shim: SessionRunner is single-direction, so we hard-code direction A
+  // when forwarding state/transcript. Task 6's SessionManager will emit per-direction.
   const emitState = (s: SessionState): void => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send(IPC.SessionStateChanged, s);
+      const payload: DirectionalState = { direction: 'A', state: s };
+      mainWindow.webContents.send(IPC.DirectionalStateChanged, payload);
     }
   };
   const emitTranscript = (t: { kind: 'input' | 'output'; text: string }): void => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send(IPC.TranscriptDelta, t);
+      mainWindow.webContents.send(IPC.TranscriptDelta, { direction: 'A', ...t });
     }
   };
 

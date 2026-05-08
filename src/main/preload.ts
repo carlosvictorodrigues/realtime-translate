@@ -3,8 +3,10 @@ import { IPC } from '../shared/events';
 import type { IpcInvokeMap, IpcSendMap } from './ipc/channels';
 
 const api = {
-  getApiKey: (): Promise<IpcInvokeMap[typeof IPC.GetApiKey]['result']> =>
-    ipcRenderer.invoke(IPC.GetApiKey),
+  hasApiKey: (): Promise<IpcInvokeMap[typeof IPC.GetApiKeyStatus]['result']> =>
+    ipcRenderer.invoke(IPC.GetApiKeyStatus),
+  getApiKeyHint: (): Promise<IpcInvokeMap[typeof IPC.GetApiKeyHint]['result']> =>
+    ipcRenderer.invoke(IPC.GetApiKeyHint),
   setApiKey: (
     value: IpcInvokeMap[typeof IPC.SetApiKey]['args']['value'],
   ): Promise<IpcInvokeMap[typeof IPC.SetApiKey]['result']> =>
@@ -20,11 +22,14 @@ const api = {
   stopTranslation: (): Promise<IpcInvokeMap[typeof IPC.StopTranslation]['result']> =>
     ipcRenderer.invoke(IPC.StopTranslation),
 
-  onSessionState: (cb: (s: IpcSendMap[typeof IPC.SessionStateChanged]) => void): (() => void) => {
-    const handler = (_evt: unknown, s: IpcSendMap[typeof IPC.SessionStateChanged]): void => cb(s);
-    ipcRenderer.on(IPC.SessionStateChanged, handler);
+  onDirectionalState: (
+    cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
+  ): (() => void) => {
+    const handler = (_evt: unknown, s: IpcSendMap[typeof IPC.DirectionalStateChanged]): void =>
+      cb(s);
+    ipcRenderer.on(IPC.DirectionalStateChanged, handler);
     return (): void => {
-      ipcRenderer.off(IPC.SessionStateChanged, handler);
+      ipcRenderer.off(IPC.DirectionalStateChanged, handler);
     };
   },
   onTranscript: (cb: (t: IpcSendMap[typeof IPC.TranscriptDelta]) => void): (() => void) => {

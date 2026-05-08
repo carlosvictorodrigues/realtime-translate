@@ -5,27 +5,25 @@ import { rt } from '../ipc/client';
 
 export function M1TestRig(): JSX.Element {
   const {
-    apiKey,
+    hasApiKey,
+    apiKeyHint,
     devices,
     selectedMic,
-    selectedOutput,
-    sessionState,
-    setApiKey,
+    setHasApiKey,
+    setApiKeyHint,
     setDevices,
     setSelectedMic,
-    setSelectedOutput,
-    setSessionState,
   } = useStore();
 
   const [keyInput, setKeyInput] = useState('');
   const [error, setError] = useState<string | undefined>();
 
   useEffect(() => {
-    rt.getApiKey().then(setApiKey);
+    rt.hasApiKey().then(setHasApiKey);
+    rt.getApiKeyHint().then(setApiKeyHint);
     rt.listDevices().then(setDevices);
-    const off1 = rt.onSessionState(setSessionState);
-    return () => off1();
-  }, [setApiKey, setDevices, setSessionState]);
+    return undefined;
+  }, [setHasApiKey, setApiKeyHint, setDevices]);
 
   const onSaveKey = async (): Promise<void> => {
     setError(undefined);
@@ -34,35 +32,14 @@ export function M1TestRig(): JSX.Element {
       return;
     }
     await rt.setApiKey(keyInput);
-    setApiKey(keyInput);
+    setHasApiKey(true);
+    setApiKeyHint(keyInput.length > 4 ? keyInput.slice(-4) : undefined);
     setKeyInput('');
   };
 
   const onStart = async (): Promise<void> => {
-    setError(undefined);
-    if (!selectedMic || !selectedOutput) {
-      setError('Pick mic and output');
-      return;
-    }
-    try {
-      await rt.startTranslation({
-        sourceLang: 'pt',
-        targetLang: 'en',
-        micDeviceId: selectedMic,
-        outputDeviceId: selectedOutput,
-      });
-    } catch (e) {
-      setError((e as Error).message);
-    }
+    setError('Start button is wired in Task 7 (BidirectionalTestRig)');
   };
-
-  const onStop = async (): Promise<void> => {
-    await rt.stopTranslation();
-  };
-
-  const cableAOption = devices?.cableA?.playback;
-  const isActive = sessionState.kind === 'active';
-  const isConnecting = sessionState.kind === 'connecting';
 
   return (
     <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -82,7 +59,7 @@ export function M1TestRig(): JSX.Element {
 
       <section>
         <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>OpenAI API Key</label>
-        {apiKey ? (
+        {hasApiKey ? (
           <div
             style={{
               fontSize: 13,
@@ -93,12 +70,13 @@ export function M1TestRig(): JSX.Element {
               marginTop: 4,
             }}
           >
-            ●●●●●●●●{apiKey.length > 4 ? apiKey.slice(-4) : '••••'}{' '}
+            ●●●●●●●●{apiKeyHint ?? '••••'}{' '}
             <button
               onClick={(): void => {
                 void (async (): Promise<void> => {
                   await rt.clearApiKey();
-                  setApiKey(undefined);
+                  setHasApiKey(false);
+                  setApiKeyHint(undefined);
                 })();
               }}
               style={{
@@ -167,31 +145,28 @@ export function M1TestRig(): JSX.Element {
 
       <section>
         <label style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          Output (CABLE-A or speaker)
+          Output (wired in Task 7)
         </label>
-        <select
-          value={selectedOutput ?? ''}
-          onChange={(e): void => setSelectedOutput(e.target.value)}
-          style={selectStyle}
+        <div
+          style={{
+            fontSize: 12,
+            color: 'var(--text-tertiary)',
+            padding: '7px 10px',
+            background: 'var(--surface)',
+            borderRadius: 6,
+            marginTop: 4,
+          }}
         >
-          <option value="">— select —</option>
-          {cableAOption && (
-            <option value={cableAOption.deviceId}>{cableAOption.label} (recommended)</option>
-          )}
-          {devices?.outputs.map((d) => (
-            <option key={d.deviceId} value={d.deviceId}>
-              {d.label}
-            </option>
-          ))}
-        </select>
+          Bidirectional output selectors land in Task 7 (BidirectionalTestRig)
+        </div>
       </section>
 
       <section style={{ marginTop: 8 }}>
         <button
           onClick={(): void => {
-            void (isActive ? onStop() : onStart());
+            void onStart();
           }}
-          disabled={!apiKey || isConnecting}
+          disabled={!hasApiKey}
           style={{
             width: '100%',
             padding: '10px 12px',
@@ -199,21 +174,17 @@ export function M1TestRig(): JSX.Element {
             fontWeight: 500,
             borderRadius: 6,
             border: 0,
-            background: isActive ? 'transparent' : 'var(--accent)',
-            color: isActive ? 'var(--text-primary)' : '#fff',
-            outline: isActive ? '1px solid var(--border-default)' : undefined,
-            opacity: !apiKey || isConnecting ? 0.5 : 1,
+            background: 'var(--accent)',
+            color: '#fff',
+            opacity: !hasApiKey ? 0.5 : 1,
           }}
         >
-          {isActive ? 'Stop' : isConnecting ? 'Connecting…' : 'Start translation (PT → EN)'}
+          Start translation (PT → EN)
         </button>
       </section>
 
       <section style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-        Status: <strong style={{ color: 'var(--text-primary)' }}>{sessionState.kind}</strong>
-        {sessionState.kind === 'error' && (
-          <span style={{ color: 'var(--error)' }}> — {sessionState.message}</span>
-        )}
+        Status: <strong style={{ color: 'var(--text-primary)' }}>idle</strong>
       </section>
 
       {error && <div style={{ color: 'var(--error)', fontSize: 12 }}>{error}</div>}

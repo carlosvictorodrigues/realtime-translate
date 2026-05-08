@@ -1,6 +1,7 @@
 export const IPC = {
   // Renderer → Main (invoke)
-  GetApiKey: 'config:getApiKey',
+  GetApiKeyStatus: 'config:getApiKeyStatus',
+  GetApiKeyHint: 'config:getApiKeyHint',
   SetApiKey: 'config:setApiKey',
   ClearApiKey: 'config:clearApiKey',
   ListDevices: 'audio:listDevices',
@@ -8,7 +9,7 @@ export const IPC = {
   StopTranslation: 'translation:stop',
 
   // Main → Renderer (send)
-  SessionStateChanged: 'session:stateChanged',
+  DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',
 } as const;
 
