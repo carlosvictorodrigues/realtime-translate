@@ -1,5 +1,13 @@
-import { autoUpdater, type Logger } from 'electron-updater';
+// electron-updater is CommonJS — Node's ESM loader can't statically resolve
+// named exports off it, so `import { autoUpdater }` throws "Named export
+// 'autoUpdater' not found" at app start. Default-import the module then
+// destructure. Type-only import for Logger is erased at runtime so it stays
+// a separate `import type` (no CJS interop concerns there).
+import electronUpdater from 'electron-updater';
+import type { Logger } from 'electron-updater';
 import { app } from 'electron';
+
+const { autoUpdater } = electronUpdater;
 
 export interface AutoUpdateHandle {
   /** Trigger a check + auto-download if newer version exists. Errors are logged via the wrapper's logger and never thrown. */

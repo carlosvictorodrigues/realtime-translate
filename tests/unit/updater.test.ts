@@ -20,18 +20,23 @@ vi.mock('electron', () => ({
   app: { isPackaged: true },
 }));
 
+// electron-updater is CJS — production code default-imports it then
+// destructures. Mock matches that shape: the default export is the module
+// object containing autoUpdater.
 vi.mock('electron-updater', () => ({
-  autoUpdater: {
-    set autoDownload(v: boolean) {
-      mocks.state.autoDownload = v;
+  default: {
+    autoUpdater: {
+      set autoDownload(v: boolean) {
+        mocks.state.autoDownload = v;
+      },
+      set autoInstallOnAppQuit(v: boolean) {
+        mocks.state.autoInstallOnAppQuit = v;
+      },
+      on: mocks.onMock,
+      checkForUpdates: mocks.checkForUpdatesMock,
+      quitAndInstall: mocks.quitAndInstallMock,
+      logger: undefined,
     },
-    set autoInstallOnAppQuit(v: boolean) {
-      mocks.state.autoInstallOnAppQuit = v;
-    },
-    on: mocks.onMock,
-    checkForUpdates: mocks.checkForUpdatesMock,
-    quitAndInstall: mocks.quitAndInstallMock,
-    logger: undefined,
   },
 }));
 
