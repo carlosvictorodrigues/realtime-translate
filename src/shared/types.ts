@@ -29,3 +29,32 @@ export interface StartTranslationArgs {
   micDeviceId: string;
   outputDeviceId: string; // M1: target playback (cable A or test speaker)
 }
+
+export type Direction = 'A' | 'B';
+
+/** Per-direction state for bidirectional translation. */
+export interface DirectionalState {
+  direction: Direction;
+  state: SessionState;
+}
+
+/**
+ * Bidirectional translation startup args. Direction A = user speaks → interlocutor;
+ * Direction B = interlocutor speaks → user.
+ *
+ * Device names from the *device's* perspective (matches Web Audio's MediaDeviceInfo.kind):
+ * - micDeviceId: real mic, Direction A audio source (audioinput)
+ * - toMeetDeviceId: where Direction A's translated output is played; Meet records from
+ *   this cable's recording side (audiooutput, e.g., 'CABLE-A Input')
+ * - fromMeetDeviceId: where the app captures Meet's incoming audio; Meet plays into
+ *   this cable's playback side, app reads from the recording side (audioinput, e.g., 'CABLE-B Output')
+ * - headsetDeviceId: real speakers/headphones, Direction B output (audiooutput)
+ */
+export interface BidirectionalArgs {
+  sourceLang: import('./languages').LanguageCode;
+  targetLang: import('./languages').LanguageCode;
+  micDeviceId: string;
+  toMeetDeviceId: string;
+  fromMeetDeviceId: string;
+  headsetDeviceId: string;
+}
