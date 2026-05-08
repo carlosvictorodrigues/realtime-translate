@@ -20,6 +20,7 @@ export const IPC = {
   OpenSetupView: 'window:openSetupView',
   SetupComplete: 'setup:complete',
   ShowBarMenu: 'window:showBarMenu',
+  SetBarMouseEvents: 'bar:setMouseEvents',
   AppQuit: 'app:quit',
   OpenExternalUrl: 'app:openExternalUrl',
 

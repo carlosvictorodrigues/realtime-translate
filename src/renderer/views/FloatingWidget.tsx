@@ -46,6 +46,40 @@ export function FloatingWidget(): JSX.Element {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Click-through on the BrowserWindow's transparent margins. The window is
+  // fixed 480x40 but the visible bar is width: auto (~150-340px). Pixels
+  // outside .rt-bar should pass clicks through to whatever app is below.
+  // Toggles ignoreMouseEvents based on which DOM region is under the cursor;
+  // forward: true keeps mousemove flowing so we can detect re-entry. Initial
+  // state is ignore=true so the bar doesn't grab clicks until the user moves
+  // over it.
+  useEffect(() => {
+    let isOnBar = false;
+    const update = (e: MouseEvent): void => {
+      const target = e.target as Element | null;
+      const onBar = !!target?.closest?.('.rt-bar');
+      if (onBar !== isOnBar) {
+        isOnBar = onBar;
+        void rt.setBarMouseEvents({ ignore: !onBar });
+      }
+    };
+    const onLeave = (): void => {
+      if (isOnBar) {
+        isOnBar = false;
+        void rt.setBarMouseEvents({ ignore: true });
+      }
+    };
+    document.addEventListener('mousemove', update);
+    document.addEventListener('mouseleave', onLeave);
+    void rt.setBarMouseEvents({ ignore: true });
+    return (): void => {
+      document.removeEventListener('mousemove', update);
+      document.removeEventListener('mouseleave', onLeave);
+      void rt.setBarMouseEvents({ ignore: false });
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const bar = selectAggregateState(stateA, stateB);
   const avgLatency = bar.kind === 'active'
     ? avgDefined(latencyMs.A, latencyMs.B)

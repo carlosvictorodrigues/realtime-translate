@@ -18,6 +18,7 @@ import { ConfigStore } from './config/configStore';
 import { UserPrefsStore } from './config/userPrefsStore';
 import { readEnvApiKey } from './config/envFallback';
 import { resolveLocale } from './i18n/resolveLocale';
+import { createT, getDictionary } from '../shared/i18n';
 import { IPC } from '../shared/events';
 import type {
   DeviceInventory,
@@ -480,12 +481,19 @@ app.whenReady().then(async () => {
     showBarMenu: (sender) => {
       const win = BrowserWindow.fromWebContents(sender);
       if (!win) return;
+      const locale = resolveLocale(prefsStore);
+      const t = createT(getDictionary(locale));
       const menu = Menu.buildFromTemplate([
-        { label: 'Configurações', click: () => { void createSetupView('#/review'); } },
+        { label: t('menu.settings'), click: () => { void createSetupView('#/review'); } },
         { type: 'separator' },
-        { label: 'Sair', accelerator: 'Alt+F4', click: () => app.quit() },
+        { label: t('menu.quit'), accelerator: 'Alt+F4', click: () => app.quit() },
       ]);
       menu.popup({ window: win });
+    },
+    setBarMouseEvents: ({ ignore }) => {
+      if (floatingWidget && !floatingWidget.isDestroyed()) {
+        floatingWidget.setIgnoreMouseEvents(ignore, { forward: true });
+      }
     },
     quitApp: () => app.quit(),
     openExternalUrl: async (url) => {

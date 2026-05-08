@@ -49,6 +49,11 @@ const api = {
   showBarMenu: (): Promise<IpcInvokeMap[typeof IPC.ShowBarMenu]['result']> =>
     ipcRenderer.invoke(IPC.ShowBarMenu),
 
+  setBarMouseEvents: (
+    args: IpcInvokeMap[typeof IPC.SetBarMouseEvents]['args'],
+  ): Promise<IpcInvokeMap[typeof IPC.SetBarMouseEvents]['result']> =>
+    ipcRenderer.invoke(IPC.SetBarMouseEvents, args),
+
   quit: (): Promise<IpcInvokeMap[typeof IPC.AppQuit]['result']> =>
     ipcRenderer.invoke(IPC.AppQuit),
 

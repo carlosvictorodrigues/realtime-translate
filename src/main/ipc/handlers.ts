@@ -24,6 +24,7 @@ interface HandlerDeps {
   openSetupView: () => Promise<void>;
   onSetupComplete: () => Promise<void>;
   showBarMenu: (sender: Electron.WebContents) => void;
+  setBarMouseEvents: (args: { ignore: boolean }) => void;
   quitApp: () => void;
   openExternalUrl: (url: string) => Promise<void>;
   resolveLocale: () => Locale;
@@ -76,6 +77,7 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.OpenSetupView, () => deps.openSetupView());
   handle(IPC.SetupComplete, () => deps.onSetupComplete());
   handle(IPC.ShowBarMenu, (e) => deps.showBarMenu(e.sender));
+  handle(IPC.SetBarMouseEvents, (_e, args) => deps.setBarMouseEvents(args));
   handle(IPC.AppQuit, () => deps.quitApp());
   handle(IPC.OpenExternalUrl, (_e, args) => deps.openExternalUrl(args.url));
   handle(IPC.ResolveLocale, () => deps.resolveLocale());
