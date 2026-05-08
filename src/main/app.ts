@@ -52,27 +52,38 @@ const wsFactory: WebSocketFactory = (url, headers) => {
 };
 
 class OffscreenBridge implements OffscreenController {
-  private pcmCallback?: (b64: string) => void;
+  private pcmCallback: ((b64: string) => void) | undefined;
 
   constructor(private readonly window: BrowserWindow) {
     ipcMain.on('offscreen:pcm', (_e, b64: string) => this.pcmCallback?.(b64));
   }
 
+  private isAlive(): boolean {
+    return !this.window.isDestroyed() && !this.window.webContents.isDestroyed();
+  }
+
   async startCapture(deviceId: string, onPcm: (b64: string) => void): Promise<void> {
     this.pcmCallback = onPcm;
+    if (!this.isAlive()) return;
     await this.window.webContents.executeJavaScript(
       `window.offscreen.startCapture(${JSON.stringify(deviceId)})`,
     );
   }
   async startPlayback(deviceId: string): Promise<void> {
+    if (!this.isAlive()) return;
     await this.window.webContents.executeJavaScript(
       `window.offscreen.startPlayback(${JSON.stringify(deviceId)})`,
     );
   }
   pushPlayback(b64: string): void {
+    if (!this.isAlive()) return;
     this.window.webContents.send('offscreen:pushPlayback', b64);
   }
   stopAll(): void {
+    // Clear callback BEFORE telling offscreen to stop, so any in-flight PCM
+    // chunks already past the renderer can't reach a now-stale session.
+    this.pcmCallback = undefined;
+    if (!this.isAlive()) return;
     this.window.webContents
       .executeJavaScript('window.offscreen.stopAll()')
       .catch(() => undefined);
@@ -197,10 +208,14 @@ app.whenReady().then(async () => {
   const offscreenBridge = new OffscreenBridge(offscreenWindow);
 
   const emitState = (s: SessionState): void => {
-    mainWindow?.webContents.send(IPC.SessionStateChanged, s);
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send(IPC.SessionStateChanged, s);
+    }
   };
   const emitTranscript = (t: { kind: 'input' | 'output'; text: string }): void => {
-    mainWindow?.webContents.send(IPC.TranscriptDelta, t);
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send(IPC.TranscriptDelta, t);
+    }
   };
 
   // Forward declaration: handlers need runner, runner needs configStore. Use a holder pattern.
