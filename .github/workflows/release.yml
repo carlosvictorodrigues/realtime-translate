@@ -1,0 +1,52 @@
+name: Release
+
+# Triggered on tag push (e.g., `git push origin v0.5.0-m5`).
+# Builds the Windows installer + portable + auto-update metadata, then attaches
+# them to a GitHub Release matching the tag (auto-created by electron-builder
+# if it doesn't exist yet).
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  # Required for electron-builder's --publish always to upload artifacts to the
+  # Release. The default GITHUB_TOKEN has write access only when this is set.
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Tests
+        run: npm test -- --run
+
+      - name: Build renderer + main + preload
+        run: npm run build
+
+      - name: Package and publish to GitHub Release
+        env:
+          # electron-builder reads GH_TOKEN to push artifacts to the Release.
+          # GITHUB_TOKEN is the auto-generated per-run token with the contents:
+          # write permission granted above.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx electron-builder --win --publish always
