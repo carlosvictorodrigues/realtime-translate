@@ -165,20 +165,21 @@ function computeWidgetPosition(
   };
 }
 
-async function createWindows(prefsStore: UserPrefsStore): Promise<void> {
-  offscreenWindow = new BrowserWindow({
-    width: 1,
-    height: 1,
-    show: false,
-    webPreferences: {
-      preload: join(__dirname, '../preload/offscreenPreload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  await offscreenWindow.loadURL(OFFSCREEN_URL);
+function isSetupComplete(configStore: ConfigStore, prefsStore: UserPrefsStore): boolean {
+  // Setup is complete iff API key is stored AND all 4 devices are remembered.
+  const hasKey = configStore.getApiKey() !== undefined;
+  if (!hasKey) return false;
+  const prefs = prefsStore.load();
+  const d = prefs.devices;
+  return Boolean(d?.mic && d?.toMeet && d?.fromMeet && d?.headset);
+}
 
-  floatingWidget = new BrowserWindow({
+async function createFloatingWidget(prefsStore: UserPrefsStore): Promise<BrowserWindow> {
+  if (floatingWidget && !floatingWidget.isDestroyed()) {
+    floatingWidget.focus();
+    return floatingWidget;
+  }
+  const win = new BrowserWindow({
     width: 480,
     height: 40,
     frame: false,
@@ -194,29 +195,42 @@ async function createWindows(prefsStore: UserPrefsStore): Promise<void> {
       nodeIntegration: false,
     },
   });
-  floatingWidget.setAlwaysOnTop(true, 'screen-saver');
+  win.setAlwaysOnTop(true, 'screen-saver');
 
   const stored = prefsStore.load().widgetPosition;
   const initial = computeWidgetPosition(stored, 480, 40);
-  floatingWidget.setPosition(initial.x, initial.y);
+  win.setPosition(initial.x, initial.y);
 
-  // Debounced save on drag-end. On Windows/Linux 'moved' fires continuously
-  // during drag (Electron aliases it to 'move' on Windows); on macOS it
-  // fires once at drag-end. Debounce normalizes both to a single save.
   let moveTimer: ReturnType<typeof setTimeout> | undefined;
-  floatingWidget.on('moved', () => {
-    if (!floatingWidget) return;
-    const pos = floatingWidget.getPosition();
+  win.on('moved', () => {
+    const pos = win.getPosition();
     const x = pos[0];
     const y = pos[1];
     if (x === undefined || y === undefined) return;
     if (moveTimer) clearTimeout(moveTimer);
-    moveTimer = setTimeout(() => {
-      prefsStore.setWidgetPosition({ x, y });
-    }, 300);
+    moveTimer = setTimeout(() => prefsStore.setWidgetPosition({ x, y }), 300);
   });
 
-  await floatingWidget.loadURL(FLOATING_WIDGET_URL);
+  await win.loadURL(FLOATING_WIDGET_URL);
+  floatingWidget = win;
+  return win;
+}
+
+async function createWindows(configStore: ConfigStore, prefsStore: UserPrefsStore): Promise<void> {
+  offscreenWindow = new BrowserWindow({
+    width: 1, height: 1, show: false,
+    webPreferences: {
+      preload: join(__dirname, '../preload/offscreenPreload.cjs'),
+      contextIsolation: true, nodeIntegration: false,
+    },
+  });
+  await offscreenWindow.loadURL(OFFSCREEN_URL);
+
+  if (isSetupComplete(configStore, prefsStore)) {
+    await createFloatingWidget(prefsStore);
+  } else {
+    await createSetupView();
+  }
 }
 
 async function createSetupView(): Promise<BrowserWindow> {
@@ -279,8 +293,8 @@ app.whenReady().then(async () => {
     prefsPath,
   });
 
-  await createWindows(prefsStore);
-  if (!offscreenWindow || !floatingWidget) throw new Error('windows not created');
+  await createWindows(configStore, prefsStore);
+  if (!offscreenWindow) throw new Error('offscreen window not created');
 
   const logsDir = join(app.getPath('userData'), 'logs');
   const sessionId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`;
@@ -371,6 +385,10 @@ app.whenReady().then(async () => {
     listDevices: () => buildDeviceInventory(offscreenWindow!),
     openSetupView: async () => {
       await createSetupView();
+    },
+    onSetupComplete: async () => {
+      await createFloatingWidget(prefsStore);
+      if (setupView && !setupView.isDestroyed()) setupView.close();
     },
   });
 });

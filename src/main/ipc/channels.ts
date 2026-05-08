@@ -17,6 +17,7 @@ export interface IpcInvokeMap {
   [IPC.PrefsSetLanguages]: { args: Languages; result: void };
   [IPC.PrefsSetDevices]: { args: DevicePrefs; result: void };
   [IPC.OpenSetupView]: { args: void; result: void };
+  [IPC.SetupComplete]: { args: void; result: void };
 }
 
 export interface IpcSendMap {

@@ -37,6 +37,9 @@ const api = {
   openSetupView: (): Promise<IpcInvokeMap[typeof IPC.OpenSetupView]['result']> =>
     ipcRenderer.invoke(IPC.OpenSetupView),
 
+  markSetupComplete: (): Promise<IpcInvokeMap[typeof IPC.SetupComplete]['result']> =>
+    ipcRenderer.invoke(IPC.SetupComplete),
+
   onDirectionalState: (
     cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
   ): (() => void) => {

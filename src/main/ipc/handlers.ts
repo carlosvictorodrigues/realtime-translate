@@ -20,6 +20,7 @@ interface HandlerDeps {
   onStop: () => Promise<void>;
   listDevices: () => Promise<DeviceInventory>;
   openSetupView: () => Promise<void>;
+  onSetupComplete: () => Promise<void>;
 }
 
 type InvokeHandler<K extends keyof IpcInvokeMap> = (
@@ -49,4 +50,5 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.StartTranslation, (_e, args) => deps.onStart(args));
   handle(IPC.StopTranslation, () => deps.onStop());
   handle(IPC.OpenSetupView, () => deps.openSetupView());
+  handle(IPC.SetupComplete, () => deps.onSetupComplete());
 }

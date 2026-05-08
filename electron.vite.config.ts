@@ -40,7 +40,6 @@ export default defineConfig({
       outDir: 'out/renderer',
       rollupOptions: {
         input: {
-          index: resolve('src/renderer/index.html'),
           offscreen: resolve('src/renderer/offscreen.html'),
           floatingWidget: resolve('src/renderer/floating-widget.html'),
           setupView: resolve('src/renderer/setup-view.html')
