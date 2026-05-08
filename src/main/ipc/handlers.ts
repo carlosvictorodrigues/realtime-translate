@@ -1,14 +1,13 @@
-import { ipcMain, safeStorage, app, type IpcMainInvokeEvent } from 'electron';
-import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { IPC } from '../../shared/events';
 import type { IpcInvokeMap } from './channels';
 import { ConfigStore } from '../config/configStore';
 import { UserPrefsStore } from '../config/userPrefsStore';
-import { readEnvApiKey } from '../config/envFallback';
 import type { BidirectionalArgs, DeviceInventory } from '../../shared/types';
 
 interface HandlerDeps {
+  configStore: ConfigStore;
+  prefsStore: UserPrefsStore;
   /**
    * Translation start. The implementation in SessionManager (src/main/translate/sessionManager.ts)
    * is responsible for emitting `{ direction, state: { kind: 'error' } }` via the
@@ -33,53 +32,21 @@ function handle<K extends keyof IpcInvokeMap>(channel: K, handler: InvokeHandler
   ipcMain.handle(channel, handler as (e: IpcMainInvokeEvent, ...args: unknown[]) => unknown);
 }
 
-export function registerIpcHandlers(deps: HandlerDeps): {
-  configStore: ConfigStore;
-  prefsStore: UserPrefsStore;
-} {
-  const configPath = join(app.getPath('userData'), 'apikey.bin');
+export function registerIpcHandlers(deps: HandlerDeps): void {
+  handle(IPC.PrefsLoad, () => deps.prefsStore.load());
+  handle(IPC.PrefsSetWidgetPosition, (_e, pos) => deps.prefsStore.setWidgetPosition(pos));
+  handle(IPC.PrefsSetLanguages, (_e, langs) => deps.prefsStore.setLanguages(langs));
+  handle(IPC.PrefsSetDevices, (_e, devices) => deps.prefsStore.setDevices(devices));
 
-  const configStore = new ConfigStore({
-    safeStorage: {
-      isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
-      encryptString: (s) => safeStorage.encryptString(s),
-      decryptString: (b) => safeStorage.decryptString(b),
-    },
-    fs: {
-      readFile: (p) => (existsSync(p) ? readFileSync(p) : undefined),
-      writeFile: (p, d) => writeFileSync(p, d),
-      exists: (p) => existsSync(p),
-    },
-    configPath,
-    envApiKey: readEnvApiKey(),
-  });
-
-  const prefsPath = join(app.getPath('userData'), 'prefs.json');
-  const prefsStore = new UserPrefsStore({
-    fs: {
-      readFile: (p) => (existsSync(p) ? readFileSync(p) : undefined),
-      writeFile: (p, d) => writeFileSync(p, d),
-      exists: (p) => existsSync(p),
-    },
-    prefsPath,
-  });
-
-  handle(IPC.PrefsLoad, () => prefsStore.load());
-  handle(IPC.PrefsSetWidgetPosition, (_e, pos) => prefsStore.setWidgetPosition(pos));
-  handle(IPC.PrefsSetLanguages, (_e, langs) => prefsStore.setLanguages(langs));
-  handle(IPC.PrefsSetDevices, (_e, devices) => prefsStore.setDevices(devices));
-
-  handle(IPC.GetApiKeyStatus, () => configStore.getApiKey() !== undefined);
+  handle(IPC.GetApiKeyStatus, () => deps.configStore.getApiKey() !== undefined);
   handle(IPC.GetApiKeyHint, () => {
-    const key = configStore.getApiKey();
+    const key = deps.configStore.getApiKey();
     return key && key.length > 4 ? key.slice(-4) : undefined;
   });
-  handle(IPC.SetApiKey, (_e, args) => configStore.setApiKey(args.value));
-  handle(IPC.ClearApiKey, () => configStore.clearApiKey());
+  handle(IPC.SetApiKey, (_e, args) => deps.configStore.setApiKey(args.value));
+  handle(IPC.ClearApiKey, () => deps.configStore.clearApiKey());
   handle(IPC.ListDevices, () => deps.listDevices());
   handle(IPC.StartTranslation, (_e, args) => deps.onStart(args));
   handle(IPC.StopTranslation, () => deps.onStop());
   handle(IPC.OpenSetupView, () => deps.openSetupView());
-
-  return { configStore, prefsStore };
 }

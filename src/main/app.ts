@@ -1,4 +1,5 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, ipcMain, safeStorage, screen, session } from 'electron';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
@@ -9,6 +10,9 @@ import { SessionManager } from './translate/sessionManager';
 import { detectVirtualCables, type DeviceInfo } from './audio/deviceDetector';
 import { createLogger, LogLevel } from './util/logger';
 import { JsonlSink } from './util/jsonlSink';
+import { ConfigStore } from './config/configStore';
+import { UserPrefsStore } from './config/userPrefsStore';
+import { readEnvApiKey } from './config/envFallback';
 import { IPC } from '../shared/events';
 import type {
   DeviceInventory,
@@ -137,7 +141,31 @@ async function buildDeviceInventory(window: BrowserWindow): Promise<DeviceInvent
   return inventory;
 }
 
-async function createWindows(): Promise<void> {
+function computeWidgetPosition(
+  preferred: { x: number; y: number } | undefined,
+  windowWidth: number,
+  windowHeight: number,
+): { x: number; y: number } {
+  const display = screen.getPrimaryDisplay();
+  const wa = display.workArea;
+  // If preferred is on-screen, use it.
+  if (preferred) {
+    const onScreen = screen.getAllDisplays().some((d) => {
+      const w = d.workArea;
+      return preferred.x >= w.x && preferred.y >= w.y &&
+        preferred.x + windowWidth <= w.x + w.width &&
+        preferred.y + windowHeight <= w.y + w.height;
+    });
+    if (onScreen) return preferred;
+  }
+  // Default: centered horizontally, 4px above the taskbar (workArea bottom).
+  return {
+    x: wa.x + Math.round((wa.width - windowWidth) / 2),
+    y: wa.y + wa.height - windowHeight - 4,
+  };
+}
+
+async function createWindows(prefsStore: UserPrefsStore): Promise<void> {
   offscreenWindow = new BrowserWindow({
     width: 1,
     height: 1,
@@ -167,6 +195,26 @@ async function createWindows(): Promise<void> {
     },
   });
   floatingWidget.setAlwaysOnTop(true, 'screen-saver');
+
+  const stored = prefsStore.load().widgetPosition;
+  const initial = computeWidgetPosition(stored, 480, 40);
+  floatingWidget.setPosition(initial.x, initial.y);
+
+  // Debounced save on drag-end. Electron 'moved' fires once per drag stop,
+  // but on macOS it fires per-pixel during drag — debounce defensively.
+  let moveTimer: ReturnType<typeof setTimeout> | undefined;
+  floatingWidget.on('moved', () => {
+    if (!floatingWidget) return;
+    const pos = floatingWidget.getPosition();
+    const x = pos[0];
+    const y = pos[1];
+    if (x === undefined || y === undefined) return;
+    if (moveTimer) clearTimeout(moveTimer);
+    moveTimer = setTimeout(() => {
+      prefsStore.setWidgetPosition({ x, y });
+    }, 300);
+  });
+
   await floatingWidget.loadURL(FLOATING_WIDGET_URL);
 }
 
@@ -201,7 +249,36 @@ app.whenReady().then(async () => {
     callback(permission === 'media');
   });
 
-  await createWindows();
+  // Stores must be constructed AFTER app is ready (uses app.getPath).
+  // Lifted from handlers.ts so createWindows() can use prefsStore for initial
+  // position BEFORE the IPC layer is set up.
+  const apiKeyPath = join(app.getPath('userData'), 'apikey.bin');
+  const configStore = new ConfigStore({
+    safeStorage: {
+      isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
+      encryptString: (s) => safeStorage.encryptString(s),
+      decryptString: (b) => safeStorage.decryptString(b),
+    },
+    fs: {
+      readFile: (p) => (existsSync(p) ? readFileSync(p) : undefined),
+      writeFile: (p, d) => writeFileSync(p, d),
+      exists: (p) => existsSync(p),
+    },
+    configPath: apiKeyPath,
+    envApiKey: readEnvApiKey(),
+  });
+
+  const prefsPath = join(app.getPath('userData'), 'prefs.json');
+  const prefsStore = new UserPrefsStore({
+    fs: {
+      readFile: (p) => (existsSync(p) ? readFileSync(p) : undefined),
+      writeFile: (p, d) => writeFileSync(p, d),
+      exists: (p) => existsSync(p),
+    },
+    prefsPath,
+  });
+
+  await createWindows(prefsStore);
   if (!offscreenWindow || !floatingWidget) throw new Error('windows not created');
 
   const logsDir = join(app.getPath('userData'), 'logs');
@@ -236,7 +313,9 @@ app.whenReady().then(async () => {
   // eslint-disable-next-line prefer-const
   let manager: SessionManager | undefined;
 
-  const { configStore, prefsStore } = registerIpcHandlers({
+  registerIpcHandlers({
+    configStore,
+    prefsStore,
     onStart: async (args) => {
       // If a previous session is still running (e.g., user clicked Start twice), tear it
       // down first so we don't leak resources or double-bind IPC channels.
@@ -293,8 +372,6 @@ app.whenReady().then(async () => {
       await createSetupView();
     },
   });
-  // prefsStore is referenced in Tasks 10/11; destructure now to expose it.
-  void prefsStore;
 });
 
 app.on('window-all-closed', () => {
