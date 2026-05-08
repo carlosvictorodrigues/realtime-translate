@@ -72,4 +72,18 @@ describe('UserPrefsStore', () => {
     fs.writeFile(path, Buffer.alloc(0));
     expect(store.load()).toEqual({});
   });
+
+  it('setUiLanguage persists and merges with other prefs', () => {
+    store.setUiLanguage('en-US');
+    expect(store.load().uiLanguage).toBe('en-US');
+
+    store.setLanguages({ source: 'pt', target: 'en' });
+    expect(store.load()).toEqual({
+      uiLanguage: 'en-US',
+      languages: { source: 'pt', target: 'en' },
+    });
+
+    store.setUiLanguage('pt-BR');
+    expect(store.load().uiLanguage).toBe('pt-BR');
+  });
 });

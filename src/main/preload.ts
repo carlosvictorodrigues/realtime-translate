@@ -33,6 +33,9 @@ const api = {
   saveDevices: (
     devices: IpcInvokeMap[typeof IPC.PrefsSetDevices]['args'],
   ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetDevices, devices),
+  saveUiLanguage: (
+    locale: IpcInvokeMap[typeof IPC.PrefsSetUiLanguage]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetUiLanguage, locale),
 
   openSetupView: (): Promise<IpcInvokeMap[typeof IPC.OpenSetupView]['result']> =>
     ipcRenderer.invoke(IPC.OpenSetupView),

@@ -17,6 +17,7 @@ export interface IpcInvokeMap {
   [IPC.PrefsSetWidgetPosition]: { args: WidgetPosition; result: void };
   [IPC.PrefsSetLanguages]: { args: Languages; result: void };
   [IPC.PrefsSetDevices]: { args: DevicePrefs; result: void };
+  [IPC.PrefsSetUiLanguage]: { args: Locale; result: void };
   [IPC.OpenSetupView]: { args: void; result: void };
   [IPC.SetupComplete]: { args: void; result: void };
   [IPC.ShowBarMenu]: { args: void; result: void };

@@ -13,6 +13,7 @@ export const IPC = {
   PrefsSetWidgetPosition: 'prefs:setWidgetPosition',
   PrefsSetLanguages: 'prefs:setLanguages',
   PrefsSetDevices: 'prefs:setDevices',
+  PrefsSetUiLanguage: 'prefs:setUiLanguage',
 
   // Window management (Renderer → Main, invoke)
   OpenSetupView: 'window:openSetupView',

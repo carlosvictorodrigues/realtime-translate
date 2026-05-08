@@ -1,4 +1,5 @@
 import type { LanguageCode } from '../../shared/languages';
+import type { Locale } from '../../shared/i18n';
 
 export interface FileSystem {
   readFile(path: string): Buffer | undefined;
@@ -27,7 +28,7 @@ export interface UserPrefs {
   widgetPosition?: WidgetPosition;
   languages?: Languages;
   devices?: DevicePrefs;
-  uiLanguage?: 'pt-BR' | 'en-US'; // NEW — setter comes in Task 3
+  uiLanguage?: Locale;
 }
 
 export interface UserPrefsStoreDeps {
@@ -70,6 +71,12 @@ export class UserPrefsStore {
   setDevices(devices: DevicePrefs): void {
     const prefs = this.load();
     prefs.devices = devices;
+    this.save(prefs);
+  }
+
+  setUiLanguage(locale: Locale): void {
+    const prefs = this.load();
+    prefs.uiLanguage = locale;
     this.save(prefs);
   }
 }
