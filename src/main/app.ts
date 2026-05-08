@@ -184,9 +184,8 @@ app.whenReady().then(async () => {
     }
   };
 
-  // Forward declaration: handlers need manager, manager needs configStore. Use a holder pattern.
-  // The `let` is intentional — `manager` is reassigned on each Start. eslint can't see the
-  // closure pattern, so we suppress.
+  // `manager` is reassigned on each Start (after teardown of any prior session).
+  // eslint can't see the closure-mutation pattern, so we suppress prefer-const.
   // eslint-disable-next-line prefer-const
   let manager: SessionManager | undefined;
 
@@ -222,8 +221,14 @@ app.whenReady().then(async () => {
         await manager.start();
       } catch (err) {
         // Per SessionManager contract: rejection means surviving direction may still be
-        // running. Tear it down before letting the error propagate.
-        await manager.stop();
+        // running. Tear it down before letting the error propagate. Wrap stop() so a
+        // secondary failure during cleanup doesn't mask the original start error.
+        try {
+          await manager.stop();
+        } catch (stopErr) {
+          // eslint-disable-next-line no-console
+          console.error('SessionManager.stop() failed during start-rejection cleanup', stopErr);
+        }
         manager = undefined;
         throw err;
       }

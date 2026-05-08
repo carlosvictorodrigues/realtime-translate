@@ -98,6 +98,7 @@ export class SessionManager {
     // but pipeline construction needs the session as a dep. Bind via mutable ref captured
     // by the closure, set after pipeline construction. Don't "simplify" by inlining —
     // it would break audio routing silently (closure would capture undefined).
+    // eslint-disable-next-line prefer-const
     let pipelineRef: AudioPipeline | undefined;
     const session = new OpenAISession({
       apiKey: this.cfg.apiKey,
