@@ -29,6 +29,16 @@ export class SessionManager {
 
   constructor(private readonly cfg: SessionManagerConfig) {}
 
+  /**
+   * Starts both directions in parallel.
+   *
+   * **Caller contract on rejection:** if `start()` rejects, the surviving direction
+   * may still be running (degraded mode per spec §7). Callers MUST call `stop()` to
+   * tear down the surviving direction's resources. Per-direction error state is also
+   * delivered via `onDirectionalState` for both directions independently.
+   *
+   * If both directions succeed, `start()` resolves once both are `active`.
+   */
   async start(): Promise<void> {
     this.a = this.buildDirection(
       'A',
@@ -70,8 +80,9 @@ export class SessionManager {
   }
 
   async stop(): Promise<void> {
-    this.a?.pipeline.stop();
-    this.b?.pipeline.stop();
+    // Pipeline.stop() is sync today (interface returns void), but `await Promise.all` is
+    // future-proof: if the offscreen-controller stopStream ever becomes async, no churn here.
+    await Promise.all([this.a?.pipeline.stop(), this.b?.pipeline.stop()]);
     this.a = undefined;
     this.b = undefined;
   }
@@ -83,6 +94,10 @@ export class SessionManager {
     micDeviceId: string,
     outputDeviceId: string,
   ): DirectionContext {
+    // Circular ref: session.events.onAudio needs to reach pipeline.handleSessionAudio,
+    // but pipeline construction needs the session as a dep. Bind via mutable ref captured
+    // by the closure, set after pipeline construction. Don't "simplify" by inlining —
+    // it would break audio routing silently (closure would capture undefined).
     let pipelineRef: AudioPipeline | undefined;
     const session = new OpenAISession({
       apiKey: this.cfg.apiKey,

@@ -26,7 +26,9 @@ class FakeOffscreen implements OffscreenController {
     this.pushedAudio.set(streamId, list);
   }
   stopStream(streamId: string): void {
+    // Mirror production OffscreenBridge.stopStream behavior.
     this.stoppedStreams.add(streamId);
+    this.pcmCallbacks.delete(streamId);
   }
   stopAll(): void {
     this.stoppedAll = true;
