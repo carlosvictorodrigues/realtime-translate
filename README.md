@@ -1,21 +1,22 @@
 # Realtime Translate
 
-> Real-time voice translation for Google Meet and other video-call apps. Bring your own OpenAI key.
+> Real-time bidirectional voice translation between any pair of **72 supported languages** for Google Meet and other video-call apps. Bring your own OpenAI key.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-M4%20preview-orange.svg)](#roadmap)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](#requirements)
+[![Languages](https://img.shields.io/badge/languages-72-purple.svg)](src/shared/languages.ts)
 
-You speak Portuguese, your contact hears English — in their voice, in their ear. They reply in English, you hear Portuguese. **No subtitles. No copy-paste. No second monitor.** Just a small floating bar that translates the call live.
+You speak in your language, your contact hears theirs — in your voice, in their ear. They reply, you hear it translated. **No subtitles. No copy-paste. No second monitor.** Just a small floating bar that translates the call live.
 
-The app sits between you and Meet (or Zoom, Teams, Discord — anything with a mic + speaker setting), captures voice on both sides, and pipes translated speech back through the call as if it came from the original speaker.
+The app sits between you and Meet (or Zoom, Teams, Discord — anything with a mic + speaker setting), captures voice on both sides, and pipes translated speech back through the call as if it came from the original speaker. Works between any two of 72 languages — the example below uses Portuguese ↔ English, but you pick the pair in the wizard.
 
 ```mermaid
 flowchart LR
-    You["🎤 You (PT)"] --> App[Realtime Translate]
-    App -->|"translates → EN"| Meet["📹 Google Meet"]
-    Meet -->|"contact's voice (EN)"| App2[Realtime Translate]
-    App2 -->|"translates → PT"| Headset["🎧 Your headset"]
+    You["🎤 You (any language)"] --> App[Realtime Translate]
+    App -->|"translates → contact's lang"| Meet["📹 Google Meet"]
+    Meet -->|"contact's voice"| App2[Realtime Translate]
+    App2 -->|"translates → your lang"| Headset["🎧 Your headset"]
 
     style App fill:#6e7fc4,color:#fff
     style App2 fill:#6e7fc4,color:#fff
@@ -54,7 +55,7 @@ Realtime Translate is an Electron desktop app that:
 4. **Routes** the translated voice into your video call so your contact hears it as if you spoke their language.
 5. **Reverses** the flow on the other side — captures your contact's voice, translates it, plays it in your headset.
 
-**Languages supported:** 72 (model is Whisper-derived). Default UI is bilingual: 🇧🇷 Portuguese + 🇺🇸 English.
+**Languages supported:** 72 (model is Whisper-derived) — pick any pair as source/target in the wizard's Step 4. The translation engine is fully bidirectional and language-agnostic; nothing is hardcoded to PT/EN. The wizard's *UI* itself ships in two locales today (🇧🇷 Portuguese + 🇺🇸 English) with auto-detection from your OS — more UI locales are on the [roadmap](#roadmap).
 
 **Designed for:** anyone who needs to talk to people in another language without learning it. Designers working with international clients. Recruiters interviewing across markets. Tech support to remote teams. Family calls across countries.
 
@@ -150,7 +151,7 @@ The Meet side is **manual** because Meet is a webapp in your browser — we can'
 - Meet's **microphone** = `CABLE-A Output (VB-Audio Cable A)`
 - Meet's **speakers** = `CABLE-B Input (VB-Audio Cable B)` — **not** the 16-channel variant
 
-Step 6 runs a short live test (~$0.10 in OpenAI calls) to verify the chain works end-to-end.
+Step 6 runs a short live test (~$0.10 in OpenAI calls) to verify the chain works end-to-end. Note: the live test currently uses pre-recorded PT-BR and EN-US sample audio (Direction A: PT → EN, Direction B: EN → PT) regardless of your selected language pair, because the test WAVs are bundled. Other pairs work in production — they go through the same translation engine — they just don't have a quick built-in self-test. A multi-language test harness is on the roadmap.
 
 ---
 
