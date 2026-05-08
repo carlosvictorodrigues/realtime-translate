@@ -259,3 +259,87 @@ Update `docs/superpowers/spikes/2026-05-07-setsinkid-spike.md` with the M3 smoke
 ```powershell
 git tag -a v0.3.0-m3 -m "M3: FloatingWidget UI + prefs persistence + backend follow-ups"
 ```
+
+---
+
+## M4 End-to-End Smoke Test (SetupView Wizard + i18n + Cost)
+
+Final manual gate before tagging M4.
+
+### Prerequisites
+
+- All M3 prerequisites
+- Clean prefs file recommended for first-launch verification:
+  ```powershell
+  Remove-Item "$env:APPDATA\realtime-translate\prefs.json" -ErrorAction SilentlyContinue
+  Remove-Item "$env:APPDATA\realtime-translate\apikey.bin" -ErrorAction SilentlyContinue
+  ```
+
+### Procedure
+
+1. **`npm run dev`** — SetupView opens at Step 1 of 6 (Welcome with audio flow diagram).
+
+2. **Welcome step:**
+   - [ ] Diagram renders 2 directions with mic/headphones/Meet icons
+   - [ ] "Begin →" routes to Step 2
+
+3. **API Key step (Step 2):**
+   - [ ] Input field accepts text, masks the value
+   - [ ] Invalid key (no `sk-` prefix) shows error
+   - [ ] Valid key saves; the masked hint appears
+   - [ ] "Avançar →" routes to Step 3
+
+4. **VB-CABLE step (Step 3):**
+   - [ ] If installed: green ✓ heading + Avançar enabled
+   - [ ] If NOT installed: warning + Download button + "Já instalei, re-detectar" button
+   - [ ] Re-detect after install transitions to ✓ state
+
+5. **Devices step (Step 4):**
+   - [ ] All 4 dropdowns populated; cable A/B auto-recommended
+   - [ ] Source + target language dropdowns show 72 languages alphabetically by English label
+   - [ ] Avançar disabled until all 4 devices selected
+
+6. **Meet config step (Step 5):**
+   - [ ] 5 numbered screenshot cards render (placeholder PNGs OK if real ones not authored yet)
+   - [ ] "Já configurei" checkbox enables Avançar
+
+7. **Test Translation step (Step 6):**
+   - [ ] "Testar PT → EN" button runs the test; passes within ~10s if pipeline OK
+   - [ ] "Testar EN → PT" button runs; user confirmed prompt appears; user clicks "Yes" → pass
+   - [ ] After both pass, "Concluir setup →" enabled
+   - [ ] Click → bar appears, SetupView closes
+
+8. **Subsequent launch (close + `npm run dev` again):**
+   - [ ] Bar appears immediately, no SetupView
+   - [ ] Click ⚙ on bar → SetupView opens at #/review (NOT #/wizard/1)
+
+9. **Review screen:**
+   - [ ] 5 sections render with current values + status icons
+   - [ ] "Edit" on Languages → routes to /wizard/4?mode=edit (footer says "Salvar e voltar")
+   - [ ] After save, returns to /review with updated value
+
+10. **Cost meter (FloatingWidget):**
+    - [ ] During active translation, `$0.XX` tag visible after latency
+    - [ ] Updates ~1Hz
+    - [ ] After 60s of bidirectional active, value is approximately `$0.07` (= 0.034 × 2)
+    - [ ] Pause → cost disappears (no longer in active state)
+
+11. **i18n:**
+    - [ ] Language dropdown in SetupView titlebar shows current (PT-BR or EN-US)
+    - [ ] Switch to EN-US → window reloads, all strings shown in English
+    - [ ] Switch back to PT-BR → all strings in Portuguese
+    - [ ] OS locale auto-detect: rename prefs.json (or remove uiLanguage from it), launch app — UI matches `app.getLocale()` if pt-BR or en-US, else falls back to en-US
+
+### Pass criteria
+
+- [ ] All 11 procedure items above checked
+- [ ] `npm run typecheck` clean
+- [ ] `npm run lint` clean
+- [ ] `npm test -- --run` ≥ 100 tests passing
+- [ ] `npm run build` produces 3 HTML entries (offscreen, floating-widget, setup-view), no `index.html`
+
+### After PASS
+
+```powershell
+git tag -a v0.4.0-m4 -m "M4: SetupView wizard + i18n + cost dashboard"
+```
