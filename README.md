@@ -3,7 +3,7 @@
 > Real-time bidirectional voice translation between any pair of **72 supported languages** for Google Meet and other video-call apps. Bring your own OpenAI key.
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-M4%20preview-orange.svg)](#roadmap)
+[![Version](https://img.shields.io/badge/version-0.5.0--m5-blue.svg)](https://github.com/carlosvictorodrigues/realtime-translate/releases)
 [![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)](#requirements)
 [![Languages](https://img.shields.io/badge/languages-72-purple.svg)](src/shared/languages.ts)
 
@@ -175,9 +175,20 @@ Step 6 runs a short live test (~$0.10 in OpenAI calls) to verify the chain works
 
 ---
 
-## Quick start (developers)
+## Download (end users)
 
-> An installable `.exe` is on the [roadmap](#roadmap) (M5). For now the app runs from source.
+Download the latest installer from the [GitHub Releases page](https://github.com/carlosvictorodrigues/realtime-translate/releases/latest):
+
+- **`Realtime Translate Setup X.X.X.exe`** — NSIS installer with shortcuts + uninstaller (recommended)
+- **`Realtime Translate X.X.X.exe`** — portable single-exe (no install)
+
+> ⚠ Windows will show a "publisher unknown" warning on first launch (SmartScreen). The installer is unsigned in v0.5.0; click "More info → Run anyway". Code-signing is on the roadmap for M6+.
+
+After install, the wizard takes ~5 minutes to set up your OpenAI key + VB-CABLE. Auto-update is enabled — newer versions install in the background and prompt you to restart when ready.
+
+---
+
+## Quick start (developers)
 
 ```bash
 git clone https://github.com/<your-fork>/realtime-translate.git
@@ -528,9 +539,9 @@ For deeper debugging, open DevTools on the floating widget or setup view (View m
 | **M1** v0.1.0 | ✅ shipped | Core translation engine, single-direction PT↔EN, offscreen Web Audio, OpenAI session, encrypted key storage |
 | **M2** v0.2.0 | ✅ shipped | Bidirectional translation, dual sessions, language picker, device manager |
 | **M3** v0.3.0 | ✅ shipped | FloatingWidget bar UI, prefs persistence, three HTML entry points, Playwright E2E spike |
-| **M4** v0.4.0 | ✅ shipped (this version) | SetupView wizard (6 steps + review), bilingual UI (PT/EN), live cost dashboard, Test Translation backend, Meet config visual guide |
-| **M5** | 🔜 next | **Signed `.exe` installer** (electron-builder + code signing), auto-update, `shell.openExternal` for external links, custom modal replacing `window.confirm`, persist `meetConfirmed` across nav, extract `<SetupTitlebar />`, click-through on bar margins |
-| **M6+** | future | macOS support, more UI languages (engine already supports 72), session transcript export, global keyboard shortcuts |
+| **M4** v0.4.0 | ✅ shipped | SetupView wizard (6 steps + review), bilingual UI (PT/EN), live cost dashboard, Test Translation backend, Meet config visual guide |
+| **M5** v0.5.0 | ✅ shipped (this version) | Distributable `.exe` (NSIS installer + portable), auto-update via `electron-updater` against GitHub Releases, GitHub Actions release workflow, `shell.openExternal` for external links, custom in-wizard `ConfirmModal`, persisted `meetConfirmed`, extracted `<SetupTitlebar />`, click-through on bar transparent margins, right-click menu i18n, stale-cable banner on Step 4 |
+| **M6+** | future | Code signing (paid cert) to silence Windows SmartScreen, macOS + Linux support, more UI languages (engine already supports 72), session transcript export, global keyboard shortcuts |
 
 ---
 

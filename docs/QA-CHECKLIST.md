@@ -343,3 +343,127 @@ Final manual gate before tagging M4.
 ```powershell
 git tag -a v0.4.0-m4 -m "M4: SetupView wizard + i18n + cost dashboard"
 ```
+
+
+---
+
+## M5 End-to-End Smoke Test (Distribution + auto-update + UX leftovers)
+
+Final manual gate before tagging M5. This adds packaged-installer testing on top of M4's wizard flow.
+
+### Prerequisites
+
+- All M4 prerequisites
+- A clean Windows 11 user account or VM (so the install path is exercised end-to-end without leftover dev artifacts)
+- The repo is at HEAD `v0.5.0-m5` (tag pending)
+
+### Procedure
+
+1. **Build the installer**
+   ```bash
+   npm run dist
+   ```
+   Produces:
+   - `release/Realtime Translate Setup 0.5.0-m5.exe` (NSIS installer, ~106 MB)
+   - `release/Realtime Translate 0.5.0-m5.exe` (portable, ~106 MB)
+   - `release/latest.yml` (auto-update metadata)
+   - `release/Realtime Translate Setup 0.5.0-m5.exe.blockmap`
+
+2. **Install on a clean account / VM**
+   - Run the NSIS installer
+   - Verify: "Publisher: unknown" SmartScreen warning appears (expected — unsigned)
+   - Click "More info → Run anyway"
+   - Wizard pages through install location picker (per-user, no admin)
+   - Verify: Start menu shortcut "Realtime Translate" + Desktop shortcut created
+   - Verify: app icon (purple/cream loop) renders in installer chrome + shortcuts + taskbar
+   - [ ] Installer completes without errors
+
+3. **First launch on the installed app**
+   - Launch from Start menu
+   - SetupView opens at Step 1 (Welcome)
+   - Verify: title bar shows "Realtime Translate"
+   - Verify: app icon visible in taskbar (purple/cream)
+   - Verify: `app.getVersion()` returns `0.5.0-m5` (DevTools console: `process.versions.electron`, `app.getVersion()` via main IPC, or check Settings → Apps & features)
+   - [ ] Wizard renders correctly
+
+4. **External link routing (Step 2 + Step 3)**
+   - Step 2: click "Não tenho chave — me leve pro signup OpenAI"
+   - Verify: opens in user's default browser (Chrome/Edge/etc.), NOT in an in-app BrowserWindow
+   - Step 3 (after detection fails or for testing): click "Baixar VB-CABLE A+B"
+   - Verify: opens vb-audio.com in default browser
+   - [ ] Both links open externally
+
+5. **Step 6 in-wizard ConfirmModal (Direction B)**
+   - Run Direction B test
+   - Verify: instead of native window.confirm dialog, an in-wizard modal appears with the question and Yes/No buttons styled with the project's design tokens
+   - Verify: Escape key cancels the modal
+   - Verify: clicking outside the modal cancels
+   - [ ] Modal works as designed
+
+6. **Bar right-click menu i18n**
+   - After Concluir setup, the bar appears
+   - Right-click the bar
+   - Verify: "Configurações" / "Sair" (PT) or "Settings" / "Quit" (EN) — depending on uiLanguage
+   - Switch UI language via the SetupView's titlebar dropdown; right-click bar again — strings reflect the new locale
+   - [ ] Menu items translate
+
+7. **Bar click-through on transparent margins**
+   - Open a window underneath the bar (e.g., a text editor)
+   - Click on a pixel ABOVE/BELOW the visible bar (within the 480x40 bounds but outside the visible region)
+   - Verify: click registers on the underlying window (focus / interaction)
+   - Click on the visible bar (the actual UI region)
+   - Verify: click registers on the bar (e.g., gear button opens SetupView)
+   - [ ] Click-through working on transparent areas, capture working on visible region
+
+8. **meetConfirmed persistence (Step 5)**
+   - Open SetupView via the bar's gear button
+   - Click "Edit" on the Meet section in /review → goes to /wizard/5?mode=edit
+   - Verify: the "Já configurei" / "I've configured it" checkbox is already checked (not reset)
+   - Click Voltar then advance again to step 5 — checkbox state survives
+   - [ ] Persists across navigation
+
+9. **Stale-cable banner (Step 4)**
+   - Manually set selectedToMeet to a non-CABLE device (e.g., physical speakers) via Step 4 dropdown — save and exit
+   - Reopen SetupView in edit mode at /wizard/4
+   - Verify: yellow warning banner appears: "Suas seleções de Saída/Captura não usam os cabos VB-CABLE recomendados"
+   - Click "Usar recomendado"
+   - Verify: dropdowns update to CABLE-A Input + CABLE-B Output, banner disappears
+   - [ ] Banner shows + auto-fix works
+
+10. **Auto-update flow (synthetic test)**
+    - With v0.5.0 installed, prepare a synthetic v0.5.1 release on GitHub:
+      - Bump `package.json` to `0.5.1` locally
+      - `git tag -a v0.5.1 -m "synthetic test"`
+      - `git push origin v0.5.1`
+      - Wait for the release.yml workflow to complete (~5-10 min)
+      - Confirm a v0.5.1 GitHub Release exists with `.exe` + `latest.yml` attached
+    - Restart the installed v0.5.0 app
+    - Wait 5+ seconds after launch — the auto-update check fires
+    - Verify: `↑ Downloading v0.5.1…` badge appears on the bar (dim, not clickable yet)
+    - Wait for download (~30s on a fast connection; latest.yml + .blockmap + .exe transfer)
+    - Verify: badge changes to `↑ Restart to update v0.5.1` (brighter accent, clickable)
+    - Click the badge
+    - Verify: app restarts and the relaunched version reports `0.5.1`
+    - [ ] Auto-update worked end-to-end
+
+11. **Uninstall**
+    - Settings → Apps → Installed apps → "Realtime Translate" → Uninstall
+    - Verify: shortcuts removed, install dir cleaned, prefs.json + apikey.bin retained at `%APPDATA%\realtime-translate\` (per-user state survives uninstall by design)
+    - [ ] Clean removal
+
+### Pass criteria
+
+- [ ] All 11 procedure items above checked
+- [ ] `npm run typecheck` clean
+- [ ] `npm run lint` clean
+- [ ] `npm test -- --run` ≥ 116 tests passing
+- [ ] Code-signing warning is the only "scary" SmartScreen prompt; expected for unsigned MVP
+
+### After PASS
+
+```powershell
+git tag -a v0.5.0-m5 -m "M5: distribution + auto-update + UX polish"
+git push origin v0.5.0-m5
+```
+
+The release.yml workflow then builds + uploads artifacts to a GitHub Release matching the tag. Once that completes, anyone running v0.5.0 (or earlier dev builds with auto-update enabled) gets prompted on next launch.
