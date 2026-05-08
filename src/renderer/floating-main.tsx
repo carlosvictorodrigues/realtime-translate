@@ -7,9 +7,20 @@ import { FloatingWidget } from './views/FloatingWidget';
 function Root(): JSX.Element | null {
   const [locale, setLocale] = useState<Locale | null>(null);
   useEffect(() => {
-    void window.rt.resolveLocale().then(setLocale);
+    window.rt
+      .resolveLocale()
+      .then(setLocale)
+      .catch((err: unknown) => {
+        // If the IPC fails (main not ready yet, transient exception), don't
+        // leave the bar blank forever — fall back to en-US so the widget
+        // becomes visible. Translations will be wrong for non-English users
+        // but the alternative is no UI at all.
+        // eslint-disable-next-line no-console
+        console.error('[i18n] resolveLocale failed, falling back to en-US', err);
+        setLocale('en-US');
+      });
   }, []);
-  if (!locale) return null; // brief flash; widget appears once locale resolved
+  if (!locale) return null; // ~10ms flash during normal startup; widget appears once locale resolved
   return (
     <I18nProvider locale={locale}>
       <FloatingWidget />
