@@ -2,10 +2,9 @@ import { useEffect, useState, type JSX } from 'react';
 import { useT } from '../../../../shared/i18n/I18nProvider';
 import { rt } from '../../../ipc/client';
 import { useStore } from '../../../state/store';
-import { LanguageDropdown } from '../../../components/LanguageDropdown';
 import { navigate, type WizardStep } from '../shared/useHashRoute';
+import { SetupTitlebar } from '../shared/SetupTitlebar';
 import { ReviewSection } from './ReviewSection';
-import type { Locale } from '../../../../shared/i18n';
 import type { DeviceInventory } from '../../../../shared/types';
 
 // TODO(m4-followup): duplicated verbatim from Step3Cables.tsx. Extract to
@@ -22,7 +21,6 @@ export function ReviewScreen(): JSX.Element {
   const [keyHint, setKeyHint] = useState<string | undefined>();
   const [hasKey, setHasKey] = useState(false);
   const [cablesOk, setCablesOk] = useState<boolean | null>(null);
-  const [locale, setLocale] = useState<Locale>('pt-BR');
   const {
     sourceLang, targetLang,
     selectedMic, selectedToMeet, selectedFromMeet, selectedHeadset, devices,
@@ -36,10 +34,6 @@ export function ReviewScreen(): JSX.Element {
     rt.getApiKeyHint().then(setKeyHint).catch((e: unknown) => {
       // eslint-disable-next-line no-console
       console.error('[review] getApiKeyHint failed', e);
-    });
-    rt.resolveLocale().then(setLocale).catch((e: unknown) => {
-      // eslint-disable-next-line no-console
-      console.error('[review] resolveLocale failed, keeping pt-BR default', e);
     });
     rt.listDevices()
       .then((d) => setCablesOk(bothCablesPresent(d)))
@@ -59,22 +53,7 @@ export function ReviewScreen(): JSX.Element {
 
   return (
     <div className="setup-shell">
-      {/* TODO(m4-followup): titlebar + LanguageDropdown is near-identical to */}
-      {/* WizardShell.tsx — extract <SetupTitlebar /> so the locale state, the */}
-      {/* save-then-reload chain, and the resolveLocale .catch() pattern live */}
-      {/* in one place. Today touching one screen and forgetting the other is */}
-      {/* a real failure mode (Task 5's race fix had to be applied twice). */}
-      <div className="setup-titlebar">
-        <span className="setup-title">Realtime Translate · {t('review.heading')}</span>
-        <LanguageDropdown
-          current={locale}
-          onChange={(next): void => {
-            // Wait for prefs write before reloading — otherwise reload pre-empts the IPC
-            // and resolveLocale() reads the stale value on next mount (Task 5 review fix).
-            void window.rt.saveUiLanguage(next).then(() => window.location.reload());
-          }}
-        />
-      </div>
+      <SetupTitlebar titleSuffix={t('review.heading')} />
       <div className="setup-body">
         <h1 className="setup-heading">{t('review.heading')}</h1>
         <p className="setup-sub">{t('review.sub')}</p>

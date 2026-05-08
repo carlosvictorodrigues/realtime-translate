@@ -29,6 +29,7 @@ export interface UserPrefs {
   languages?: Languages;
   devices?: DevicePrefs;
   uiLanguage?: Locale;
+  meetConfirmed?: boolean;
 }
 
 export interface UserPrefsStoreDeps {
@@ -77,6 +78,12 @@ export class UserPrefsStore {
   setUiLanguage(locale: Locale): void {
     const prefs = this.load();
     prefs.uiLanguage = locale;
+    this.save(prefs);
+  }
+
+  setMeetConfirmed(value: boolean): void {
+    const prefs = this.load();
+    prefs.meetConfirmed = value;
     this.save(prefs);
   }
 }

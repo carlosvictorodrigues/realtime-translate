@@ -1,14 +1,12 @@
-import { useState, type JSX } from 'react';
+import type { JSX } from 'react';
 import { useT } from '../../../../shared/i18n/I18nProvider';
+import { useStore } from '../../../state/store';
 import { navigate } from '../shared/useHashRoute';
 import { MeetGuide } from '../shared/MeetGuide';
 
 export function Step5MeetConfig({ mode }: { mode?: 'edit' | undefined }): JSX.Element {
   const t = useT();
-  // TODO(m4-followup): persist meetConfirmed in useStore so back-and-forward
-  // navigation doesn't force the user to re-check after they've already
-  // confirmed once. Currently local-only — minor friction for now.
-  const [confirmed, setConfirmed] = useState(false);
+  const { meetConfirmed, setMeetConfirmed } = useStore();
 
   const back = (): void => {
     navigate(mode === 'edit' ? { kind: 'review' } : { kind: 'wizard', step: 4 });
@@ -26,13 +24,13 @@ export function Step5MeetConfig({ mode }: { mode?: 'edit' | undefined }): JSX.El
       <MeetGuide />
 
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-primary)', cursor: 'pointer' }}>
-        <input type="checkbox" checked={confirmed} onChange={(e): void => setConfirmed(e.target.checked)} />
+        <input type="checkbox" checked={meetConfirmed} onChange={(e): void => setMeetConfirmed(e.target.checked)} />
         {t('setup.meet.alreadyConfigured')}
       </label>
 
       <div className="setup-footer">
         <button className="btn btn-ghost" onClick={back}>{t('common.back')}</button>
-        <button className="btn btn-primary" disabled={!confirmed} onClick={proceed}>
+        <button className="btn btn-primary" disabled={!meetConfirmed} onClick={proceed}>
           {mode === 'edit' ? t('common.saveAndBack') : t('common.next')}
         </button>
       </div>

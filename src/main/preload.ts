@@ -36,6 +36,9 @@ const api = {
   saveUiLanguage: (
     locale: IpcInvokeMap[typeof IPC.PrefsSetUiLanguage]['args'],
   ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetUiLanguage, locale),
+  saveMeetConfirmed: (
+    value: IpcInvokeMap[typeof IPC.PrefsSetMeetConfirmed]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetMeetConfirmed, value),
 
   openSetupView: (): Promise<IpcInvokeMap[typeof IPC.OpenSetupView]['result']> =>
     ipcRenderer.invoke(IPC.OpenSetupView),

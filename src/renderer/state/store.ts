@@ -19,6 +19,7 @@ interface AppState {
   selectedToMeet: string | undefined;
   selectedFromMeet: string | undefined;
   selectedHeadset: string | undefined;
+  meetConfirmed: boolean;
   stateA: SessionState;
   stateB: SessionState;
   latencyMs: { A: number | undefined; B: number | undefined };
@@ -38,6 +39,7 @@ interface AppState {
   setSelectedToMeet(deviceId: string): void;
   setSelectedFromMeet(deviceId: string): void;
   setSelectedHeadset(deviceId: string): void;
+  setMeetConfirmed(value: boolean): void;
   setDirectionState(d: Direction, state: SessionState): void;
   setLatency(direction: Direction, averageMs: number): void;
   setUpdateAvailable(info: { version: string }): void;
@@ -65,6 +67,7 @@ export const useStore = create<AppState>((set) => ({
   selectedToMeet: undefined,
   selectedFromMeet: undefined,
   selectedHeadset: undefined,
+  meetConfirmed: false,
   stateA: { kind: 'idle' },
   stateB: { kind: 'idle' },
   latencyMs: { A: undefined, B: undefined },
@@ -97,6 +100,10 @@ export const useStore = create<AppState>((set) => ({
     set({ selectedHeadset });
     persistDevices();
   },
+  setMeetConfirmed: (meetConfirmed) => {
+    set({ meetConfirmed });
+    void window.rt.saveMeetConfirmed(meetConfirmed);
+  },
   setDirectionState: (d, state) =>
     set((s) => (d === 'A' ? { ...s, stateA: state } : { ...s, stateB: state })),
   setLatency: (direction, averageMs) =>
@@ -118,6 +125,7 @@ export const useStore = create<AppState>((set) => ({
       selectedToMeet: prefs.devices?.toMeet ?? s.selectedToMeet,
       selectedFromMeet: prefs.devices?.fromMeet ?? s.selectedFromMeet,
       selectedHeadset: prefs.devices?.headset ?? s.selectedHeadset,
+      meetConfirmed: prefs.meetConfirmed ?? s.meetConfirmed,
       hydrated: true,
     }));
   },

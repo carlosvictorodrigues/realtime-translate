@@ -61,6 +61,7 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.PrefsSetLanguages, (_e, langs) => deps.prefsStore.setLanguages(langs));
   handle(IPC.PrefsSetDevices, (_e, devices) => deps.prefsStore.setDevices(devices));
   handle(IPC.PrefsSetUiLanguage, (_e, locale) => deps.prefsStore.setUiLanguage(locale));
+  handle(IPC.PrefsSetMeetConfirmed, (_e, value) => deps.prefsStore.setMeetConfirmed(value));
 
   handle(IPC.GetApiKeyStatus, () => deps.configStore.getApiKey() !== undefined);
   handle(IPC.GetApiKeyHint, () => {

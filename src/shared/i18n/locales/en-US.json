@@ -31,6 +31,9 @@
   },
   "setup": {
     "stepLabel": "Step {{n}} of {{total}}",
+    "title": {
+      "suffix": "Setup"
+    },
     "welcome": {
       "label": "Welcome",
       "heading": "Let's get you set up in ~5 minutes",

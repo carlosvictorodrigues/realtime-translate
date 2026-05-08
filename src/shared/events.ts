@@ -14,6 +14,7 @@ export const IPC = {
   PrefsSetLanguages: 'prefs:setLanguages',
   PrefsSetDevices: 'prefs:setDevices',
   PrefsSetUiLanguage: 'prefs:setUiLanguage',
+  PrefsSetMeetConfirmed: 'prefs:setMeetConfirmed',
 
   // Window management (Renderer → Main, invoke)
   OpenSetupView: 'window:openSetupView',
