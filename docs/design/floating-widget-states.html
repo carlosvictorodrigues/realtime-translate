@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>FloatingWidget — C Merged · Estados</title>
+<style>
+  body {
+    background: #0a0a0b;
+    color: #f4f4f5;
+    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+    padding: 48px 32px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin-bottom: 4px;
+  }
+  .doc-sub {
+    color: #a1a1aa;
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+  .doc-meta {
+    color: #71717a;
+    font-size: 12px;
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #1f2226;
+  }
+  h2 {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #71717a;
+    margin: 40px 0 16px;
+  }
+
+  .merge-key {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .merge-pane {
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    font-size: 12px;
+    color: #a1a1aa;
+    line-height: 1.6;
+  }
+  .merge-pane h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 6px;
+    font-weight: 500;
+  }
+  .merge-pane.from-b h4 { color: #6e7fc4; }
+  .merge-pane.from-a h4 { color: #4ade80; }
+  .merge-pane strong { color: #f4f4f5; font-weight: 500; }
+
+  .stage {
+    background: #08090a;
+    border-radius: 8px;
+    padding: 32px 24px;
+    min-height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .stage::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+  }
+
+  .rt-c {
+    height: 32px;
+    background: rgba(28, 30, 36, 0.78);
+    backdrop-filter: blur(40px) saturate(140%);
+    -webkit-backdrop-filter: blur(40px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+    display: inline-flex;
+    align-items: center;
+    padding: 0 6px 0 14px;
+    gap: 10px;
+    color: #f4f4f5;
+    font-size: 12px;
+    position: relative;
+    z-index: 1;
+    transition: all 200ms ease-out;
+  }
+
+  .rt-c .orb {
+    width: 8px; height: 8px; border-radius: 50%;
+    flex-shrink: 0;
+    transition: background 150ms;
+  }
+  .rt-c.paused .orb { background: rgba(244, 244, 245, 0.3); box-shadow: none; }
+  .rt-c.active .orb {
+    background: #6e7fc4;
+    box-shadow: 0 0 12px rgba(110, 127, 196, 0.7);
+    animation: orb-pulse 1.6s ease-in-out infinite;
+  }
+  .rt-c.reconnecting .orb {
+    background: #f59e0b;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.7);
+    animation: orb-pulse 0.9s ease-in-out infinite;
+  }
+  .rt-c.error .orb {
+    background: #f87171;
+    box-shadow: 0 0 12px rgba(248, 113, 113, 0.6);
+  }
+  @keyframes orb-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.65; transform: scale(0.9); }
+  }
+
+  .rt-c .wf {
+    display: flex; gap: 2px; height: 14px; align-items: center;
+    flex-shrink: 0;
+  }
+  .rt-c .wf div {
+    width: 2px; background: #6e7fc4; border-radius: 1px; opacity: 0.7;
+    animation: wave 0.8s ease-in-out infinite;
+  }
+  .rt-c .wf div:nth-child(1) { height: 30%; animation-delay: 0s; }
+  .rt-c .wf div:nth-child(2) { height: 60%; animation-delay: 0.1s; }
+  .rt-c .wf div:nth-child(3) { height: 90%; animation-delay: 0.2s; }
+  .rt-c .wf div:nth-child(4) { height: 70%; animation-delay: 0.3s; }
+  .rt-c .wf div:nth-child(5) { height: 40%; animation-delay: 0.4s; }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(1.2); }
+  }
+  .rt-c:not(.active) .wf { display: none; }
+
+  .rt-c .pair {
+    color: rgba(244, 244, 245, 0.85);
+    font-weight: 500;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    padding: 2px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .rt-c .pair:hover { background: rgba(255,255,255,0.06); }
+  .rt-c .pair .arr { color: rgba(244, 244, 245, 0.4); margin: 0 4px; }
+
+  .rt-c .status-text {
+    font-size: 11px;
+    font-weight: 500;
+    flex: 1;
+    text-align: left;
+  }
+  .rt-c.reconnecting .status-text { color: #f59e0b; }
+  .rt-c.reconnecting .status-text .attempt {
+    color: rgba(245, 158, 11, 0.6); font-weight: 400; margin-left: 4px;
+  }
+  .rt-c.error .status-text { color: #f87171; }
+
+  .rt-c .lat {
+    font-family: 'Cascadia Code', Consolas, monospace;
+    font-size: 10px;
+    color: rgba(244, 244, 245, 0.5);
+    flex-shrink: 0;
+  }
+  .rt-c:not(.active) .lat { display: none; }
+
+  .rt-c .action {
+    width: 26px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 5px;
+    color: rgba(244, 244, 245, 0.9);
+    background: rgba(110, 127, 196, 0.18);
+    border: 1px solid rgba(110, 127, 196, 0.3);
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: background 100ms;
+  }
+  .rt-c .action:hover { background: rgba(110, 127, 196, 0.32); }
+  .rt-c .action svg { width: 11px; height: 11px; fill: currentColor; }
+  .rt-c.error .action {
+    background: rgba(248, 113, 113, 0.15);
+    border-color: rgba(248, 113, 113, 0.35);
+    color: #f87171;
+  }
+
+  .rt-c .gear {
+    width: 22px; height: 24px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border-radius: 4px;
+    color: rgba(244, 244, 245, 0.55);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .rt-c .gear:hover { background: rgba(255,255,255,0.06); color: rgba(244, 244, 245, 0.9); }
+
+  .rt-c.reconnecting {
+    background: rgba(60, 45, 18, 0.7);
+    border-color: rgba(245, 158, 11, 0.2);
+  }
+  .rt-c.error {
+    background: rgba(60, 22, 22, 0.78);
+    border-color: rgba(248, 113, 113, 0.25);
+  }
+
+  .state-grid {
+    display: grid;
+    grid-template-columns: 140px 1fr 1fr;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+  }
+  .state-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #f4f4f5;
+  }
+  .state-name .desc {
+    display: block;
+    font-size: 11px;
+    color: #71717a;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  .state-anno {
+    font-size: 12px;
+    color: #a1a1aa;
+    line-height: 1.5;
+  }
+  .state-anno strong { color: #f4f4f5; font-weight: 500; }
+  .state-anno code {
+    font-family: 'Cascadia Code', monospace;
+    font-size: 11px;
+    background: rgba(255,255,255,0.04);
+    padding: 1px 4px;
+    border-radius: 3px;
+    color: #c4c4c8;
+  }
+</style>
+</head>
+<body>
+
+<h1>FloatingWidget — C Merged</h1>
+<p class="doc-sub">B aesthetic (glass, Segoe UI, waveform, accent) + A função (controles essenciais sempre visíveis). Barra única, transforma conforme estado.</p>
+<p class="doc-meta">Spec: <code style="color: #a1a1aa;">docs/superpowers/specs/2026-05-08-realtime-translate-m3-floatingwidget.md</code> · 2026-05-08</p>
+
+<h2>Origem do merge</h2>
+<div class="merge-key">
+  <div class="merge-pane from-b">
+    <h4>De B (aesthetic)</h4>
+    Glass translúcido <strong>(rgba 0.78 + blur 40px)</strong> · Segoe UI Variable · waveform animado quando active · accent indigo glow no orb · 32px de altura · cantos 16px (pill-ish)
+  </div>
+  <div class="merge-pane from-a">
+    <h4>De A (função)</h4>
+    Pause/Resume <strong>sempre visível</strong> · ⚙ sempre visível · lang pair clicável · latência sempre visível em mono · controles na direita · estados explícitos com cor + texto
+  </div>
+</div>
+
+<h2>Estados visuais</h2>
+
+<div class="state-grid">
+  <div class="state-name">
+    Paused / Idle
+    <span class="desc">app aberto, tradução não rodando</span>
+  </div>
+  <div class="stage">
+    <div class="rt-c paused">
+      <div class="orb"></div>
+      <div class="pair">PT<span class="arr">↔</span>EN</div>
+      <div class="action" title="Retomar tradução">
+        <svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+      </div>
+      <div class="gear">⚙</div>
+    </div>
+  </div>
+  <div class="state-anno">
+    Orb apagado · sem waveform · botão <strong>▶</strong> = Retomar (ou Iniciar se primeira vez) · ⚙ = SetupView<br>
+    Largura: ~150px
+  </div>
+</div>
+
+<div class="state-grid">
+  <div class="state-name">
+    Active
+    <span class="desc">traduzindo bidirecional, custo correndo</span>
+  </div>
+  <div class="stage">
+    <div class="rt-c active">
+      <div class="orb"></div>
+      <div class="wf"><div></div><div></div><div></div><div></div><div></div></div>
+      <div class="pair">PT<span class="arr">↔</span>EN</div>
+      <div class="lat">1.2s</div>
+      <div class="action" title="Pausar tradução">
+        <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+      </div>
+      <div class="gear">⚙</div>
+    </div>
+  </div>
+  <div class="state-anno">
+    Orb pulsa accent · waveform animado · latência média visível em mono · botão <strong>⏸</strong> = Pausar (custo!) · acesso 1-click<br>
+    Largura: ~290px · pause/resume é o botão mais destacado (accent muted bg)
+  </div>
+</div>
+
+<div class="state-grid">
+  <div class="state-name">
+    Reconnecting
+    <span class="desc">drop transitório de WS</span>
+  </div>
+  <div class="stage">
+    <div class="rt-c reconnecting">
+      <div class="orb"></div>
+      <div class="status-text">Reconectando<span class="attempt">tentativa 2</span></div>
+      <div class="action" title="Pausar tradução">
+        <svg viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg>
+      </div>
+      <div class="gear">⚙</div>
+    </div>
+  </div>
+  <div class="state-anno">
+    Background tinge <strong>warning</strong> · orb amarelo pulsando rápido · texto substitui lang pair · pause continua visível pra cancelar<br>
+    Você não perde a barra de vista — fica óbvio que tem algo errado
+  </div>
+</div>
+
+<div class="state-grid">
+  <div class="state-name">
+    Error
+    <span class="desc">falha não-recuperável</span>
+  </div>
+  <div class="stage">
+    <div class="rt-c error">
+      <div class="orb"></div>
+      <div class="status-text">Erro: chave inválida</div>
+      <div class="action" title="Tentar novamente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </div>
+      <div class="gear">⚙</div>
+    </div>
+  </div>
+  <div class="state-anno">
+    Background tinge <strong>error</strong> · orb vermelho · mensagem da OpenAI inline (truncada se passar de ~28ch) · botão vira <code>↻</code> = Retry<br>
+    Click ⚙ leva direto pra SetupView com a seção da chave em foco
+  </div>
+</div>
+
+</body>
+</html>
