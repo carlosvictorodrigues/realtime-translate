@@ -8,7 +8,14 @@ import './styles/setup.css';
 function Root(): JSX.Element | null {
   const [locale, setLocale] = useState<Locale | null>(null);
   useEffect(() => {
-    void window.rt.resolveLocale().then(setLocale);
+    window.rt
+      .resolveLocale()
+      .then(setLocale)
+      .catch((err: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error('[i18n] resolveLocale failed, falling back to en-US', err);
+        setLocale('en-US');
+      });
   }, []);
   if (!locale) return null;
   return (

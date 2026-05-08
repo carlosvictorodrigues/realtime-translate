@@ -14,7 +14,13 @@ export function WizardShell({
 }): JSX.Element {
   const [locale, setLocale] = useState<Locale>('pt-BR');
   useEffect(() => {
-    void window.rt.resolveLocale().then(setLocale);
+    window.rt
+      .resolveLocale()
+      .then(setLocale)
+      .catch((err: unknown) => {
+        // eslint-disable-next-line no-console
+        console.error('[i18n] resolveLocale failed, keeping pt-BR default', err);
+      });
   }, []);
 
   return (
@@ -24,10 +30,10 @@ export function WizardShell({
         <LanguageDropdown
           current={locale}
           onChange={(next): void => {
-            setLocale(next);
-            void window.rt.saveUiLanguage(next);
-            // Soft reload — re-render whole app under new locale via location reload
-            window.location.reload();
+            // Wait for the prefs write before reloading — otherwise the reload
+            // can pre-empt the IPC and resolveLocale() reads the stale value
+            // on next mount, silently reverting the user's selection.
+            void window.rt.saveUiLanguage(next).then(() => window.location.reload());
           }}
         />
       </div>
