@@ -64,16 +64,24 @@ export function Step2ApiKey({ mode }: { mode?: 'edit' | undefined }): JSX.Elemen
       )}
 
       <div style={{ marginTop: 16 }}>
-        {/* TODO(m5): replace target="_blank" with shell.openExternal via IPC — */}
-        {/* without setWindowOpenHandler this opens in an in-app BrowserWindow. */}
-        <a
-          href="https://platform.openai.com/api-keys"
-          target="_blank"
-          rel="noreferrer"
-          style={{ color: 'var(--accent)', fontSize: 13 }}
+        <button
+          type="button"
+          onClick={(): void => {
+            void rt.openExternalUrl('https://platform.openai.com/api-keys');
+          }}
+          style={{
+            color: 'var(--accent)',
+            fontSize: 13,
+            background: 'transparent',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+            textDecoration: 'underline',
+            fontFamily: 'inherit',
+          }}
         >
           {t('setup.key.signupLink')}
-        </a>
+        </button>
       </div>
 
       <details style={{ marginTop: 16 }} open={howToOpen} onToggle={(e): void => setHowToOpen((e.currentTarget as HTMLDetailsElement).open)}>

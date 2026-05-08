@@ -49,6 +49,11 @@ const api = {
   quit: (): Promise<IpcInvokeMap[typeof IPC.AppQuit]['result']> =>
     ipcRenderer.invoke(IPC.AppQuit),
 
+  openExternalUrl: (
+    url: IpcInvokeMap[typeof IPC.OpenExternalUrl]['args']['url'],
+  ): Promise<IpcInvokeMap[typeof IPC.OpenExternalUrl]['result']> =>
+    ipcRenderer.invoke(IPC.OpenExternalUrl, { url }),
+
   resolveLocale: (): Promise<IpcInvokeMap[typeof IPC.ResolveLocale]['result']> =>
     ipcRenderer.invoke(IPC.ResolveLocale),
 

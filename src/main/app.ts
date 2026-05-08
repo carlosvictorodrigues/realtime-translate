@@ -1,9 +1,10 @@
-import { app, BrowserWindow, ipcMain, Menu, safeStorage, screen, session } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, safeStorage, screen, session, shell } from 'electron';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 import { registerIpcHandlers } from './ipc/handlers';
+import { validateExternalUrl } from './ipc/openExternalUrl';
 import { type WebSocketLike, type WebSocketFactory } from './translate/openaiSession';
 import { type OffscreenController } from './translate/audioPipeline';
 import { SessionManager } from './translate/sessionManager';
@@ -112,6 +113,26 @@ class OffscreenBridge implements OffscreenController {
   }
 }
 
+/**
+ * setWindowOpenHandler closure used on every BrowserWindow that loads renderer
+ * HTML. Defense-in-depth: any window.open / target=_blank attempt is denied
+ * and redirected through validateExternalUrl + shell.openExternal so it lands
+ * in the user's default browser instead of an in-app BrowserWindow with no
+ * chrome. Most call sites already use the typed IPC; this catches legacy HTML
+ * or future contributors who miss it. Exempt: offscreenWindow (no user content).
+ */
+function attachExternalLinkHandler(window: BrowserWindow): void {
+  window.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const parsed = validateExternalUrl(url);
+      void shell.openExternal(parsed.toString());
+    } catch {
+      // Invalid URL or blocked protocol — silently deny.
+    }
+    return { action: 'deny' };
+  });
+}
+
 function toDeviceSummary(d: DeviceInfo): DeviceSummary {
   return { deviceId: d.deviceId, label: d.label, kind: d.kind };
 }
@@ -199,6 +220,7 @@ async function createFloatingWidget(prefsStore: UserPrefsStore): Promise<Browser
     },
   });
   win.setAlwaysOnTop(true, 'screen-saver');
+  attachExternalLinkHandler(win);
 
   const stored = prefsStore.load().widgetPosition;
   const initial = computeWidgetPosition(stored, 480, 40);
@@ -262,6 +284,7 @@ async function createSetupView(initialHash = ''): Promise<BrowserWindow> {
   setupView.on('closed', () => {
     setupView = null;
   });
+  attachExternalLinkHandler(setupView);
   await setupView.loadURL(`${SETUP_VIEW_URL}${initialHash}`);
   return setupView;
 }
@@ -449,6 +472,10 @@ app.whenReady().then(async () => {
       menu.popup({ window: win });
     },
     quitApp: () => app.quit(),
+    openExternalUrl: async (url) => {
+      const parsed = validateExternalUrl(url);
+      await shell.openExternal(parsed.toString());
+    },
     resolveLocale: () => resolveLocale(prefsStore),
     testSessionStart: ({ direction, sourceLang, targetLang }) => {
       const apiKey = configStore.getApiKey();

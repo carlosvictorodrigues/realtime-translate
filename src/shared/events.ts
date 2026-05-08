@@ -20,6 +20,7 @@ export const IPC = {
   SetupComplete: 'setup:complete',
   ShowBarMenu: 'window:showBarMenu',
   AppQuit: 'app:quit',
+  OpenExternalUrl: 'app:openExternalUrl',
 
   // i18n (Renderer → Main, invoke)
   ResolveLocale: 'i18n:resolveLocale',

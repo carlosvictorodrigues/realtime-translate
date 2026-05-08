@@ -23,6 +23,7 @@ export interface IpcInvokeMap {
   [IPC.SetupComplete]: { args: void; result: void };
   [IPC.ShowBarMenu]: { args: void; result: void };
   [IPC.AppQuit]: { args: void; result: void };
+  [IPC.OpenExternalUrl]: { args: { url: string }; result: void };
   [IPC.ResolveLocale]: { args: void; result: Locale };
   [IPC.TestSessionStart]: {
     args: { direction: Direction; sourceLang: LanguageCode; targetLang: LanguageCode };

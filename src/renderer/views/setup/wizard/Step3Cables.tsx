@@ -65,16 +65,16 @@ export function Step3Cables({ mode }: { mode?: 'edit' | undefined }): JSX.Elemen
         <>
           <h1 className="setup-heading">{t('setup.cables.missingHeading')}</h1>
           <p className="setup-sub">{t('setup.cables.missingSub')}</p>
-          {/* TODO(m5): replace target="_blank" with shell.openExternal via IPC. */}
-          <a
-            href="https://vb-audio.com/Cable/index.htm#DownloadCableAB"
-            target="_blank"
-            rel="noreferrer"
+          <button
+            type="button"
             className="btn btn-primary"
-            style={{ display: 'inline-block', textDecoration: 'none', marginRight: 12 }}
+            style={{ marginRight: 12 }}
+            onClick={(): void => {
+              void rt.openExternalUrl('https://vb-audio.com/Cable/index.htm#DownloadCableAB');
+            }}
           >
             {t('setup.cables.downloadButton')}
-          </a>
+          </button>
           <button className="btn btn-secondary" onClick={(): void => { void onRescan(); }}>
             {t('setup.cables.rescanButton')}
           </button>

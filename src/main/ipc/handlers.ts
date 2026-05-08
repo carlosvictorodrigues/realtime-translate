@@ -25,6 +25,7 @@ interface HandlerDeps {
   onSetupComplete: () => Promise<void>;
   showBarMenu: (sender: Electron.WebContents) => void;
   quitApp: () => void;
+  openExternalUrl: (url: string) => Promise<void>;
   resolveLocale: () => Locale;
   // Test Translation (M4 Phase E) — see TestSessionRegistry + loopbackCapture.
   testSessionStart: (args: {
@@ -74,6 +75,7 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.SetupComplete, () => deps.onSetupComplete());
   handle(IPC.ShowBarMenu, (e) => deps.showBarMenu(e.sender));
   handle(IPC.AppQuit, () => deps.quitApp());
+  handle(IPC.OpenExternalUrl, (_e, args) => deps.openExternalUrl(args.url));
   handle(IPC.ResolveLocale, () => deps.resolveLocale());
 
   handle(IPC.TestSessionStart, (_e, args) => deps.testSessionStart(args));
