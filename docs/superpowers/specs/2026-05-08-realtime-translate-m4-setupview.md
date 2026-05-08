@@ -33,6 +33,7 @@ Também introduz **i18n** da UI (cross-cutting): all strings extraídas em arqui
 | Persistência i18n | Novo campo `prefs.uiLanguage` (distinto de `prefs.languages` source/target) |
 | Window size | 720×640 (mantém M3 SetupView size) · resizable |
 | Botão Sair | Existe globalmente — no review screen footer; durante wizard fica num menu (×/Sair) no titlebar |
+| Cost dashboard live | Tag `$0.42` em mono dim na barra (active state), atualiza 1× por segundo. Cálculo client-side: $0.034/min × elapsed × N sessões ativas |
 
 ## 3. Arquitetura
 
@@ -460,6 +461,73 @@ async function testDirectionB(): Promise<TestResult> {
 
 (Briefing original mencionou $0.05-0.10 que cobre overhead de WS open + pings — conservador estimate é fine.)
 
+## 9.1. Cost dashboard live (FloatingWidget)
+
+Cross-cutting addition à barra (não SetupView): exibe custo acumulado da sessão ativa em tempo real.
+
+### Visual
+
+Tag `$0.42` em mono dim, posicionada após o LatencyMeter na ordem dos elementos da barra. Aparece apenas quando `bar.kind === 'active'`. Estilo idêntico ao latency tag mas cor mais apagada (`var(--text-tertiary)` em vez de `rgba(244,244,245,0.5)`) — economia de proeminência visual já que latency é mais útil instante-a-instante.
+
+```
+[ • ▌▌▌▌▌▌  PT ↔ EN  1.2s  $0.42  ⏸  ⚙ ]
+                       ↑      ↑
+                   latency  cost (dim)
+```
+
+Largura adicional: ~50px. Total active bar: ~340px.
+
+### Cálculo
+
+```typescript
+const RATE_PER_SESSION_MIN = 0.034;  // USD per minute per session
+
+function computeCost(stateA: SessionState, stateB: SessionState, now: number): number {
+  let totalSessionMinutes = 0;
+  if (stateA.kind === 'active') totalSessionMinutes += (now - stateA.sinceMs) / 60000;
+  if (stateB.kind === 'active') totalSessionMinutes += (now - stateB.sinceMs) / 60000;
+  return totalSessionMinutes * RATE_PER_SESSION_MIN;
+}
+```
+
+Bidirectional ativa = 2 sessões = $0.068/min combinado. Pause/Resume reseta cada `sinceMs` ao reentrar em `active`, então cost reflete a sessão ATUAL apenas (não soma sessões anteriores). Limpar acúmulo histórico fica out of scope.
+
+### Refresh rate
+
+`setInterval(1000ms)` no FloatingWidget força re-render. Cleanup ao unmount (`return () => clearInterval(id)`).
+
+Custo computacional: cheap. 1 timer + 1 setState/segundo. Não há IPC nem rede.
+
+### Display format
+
+- `< $0.10` → `$0.05` (2 decimais)
+- `≥ $0.10` → `$0.42` (2 decimais)
+- Ultrapassa `$10`? → `$12.34` ainda em 2 decimais (formato cresce sem quebrar)
+
+Decisão: sempre 2 decimais, formato `$X.XX`. Mono font garante alinhamento consistente.
+
+### Reset semantics
+
+Cost é per-sessão, não acumulado. Quando user clica ⏸ pause:
+- `stateA.kind` vira `idle` → contribui 0 ao cálculo
+- Custos da sessão recém-encerrada não são lembrados
+
+Quando user clica ▶ resume:
+- Nova sessão start → novo `stateA.sinceMs` → cost começa de $0.00
+- Sessão anterior é "esquecida"
+
+Justificativa: cost dashboard é affordance pra controle DURANTE uma chamada ("estou indo muito longe?"). Acumulação histórica seria útil mas é out of scope (M5+: custo por dia/semana/mês com agregação).
+
+### Acceptance criteria (cost)
+
+- [ ] Cost tag aparece em active state, some em idle/connecting/reconnecting/error
+- [ ] Cost atualiza visualmente a cada segundo (~1Hz)
+- [ ] Bidirectional ativo = 2× rate (~$0.068/min)
+- [ ] Pause/Resume reseta o cost
+- [ ] Format `$X.XX` consistente, mono font
+
+---
+
 ## 10. Acceptance criteria
 
 - [ ] First-launch (sem prefs) abre SetupView em `/wizard/1` (Welcome)
@@ -489,7 +557,7 @@ async function testDirectionB(): Promise<TestResult> {
 - **Tradução automatizada via LLM** — strings escritas à mão pra qualidade
 - **Live transcript display** durante sessão ativa (era originalmente cogitado pra SetupView; defer pra M5)
 - **Export logs** button — defer
-- **Cost dashboard** mostrando running cost durante sessão — defer
+- **Cost dashboard histórico** (acumulação por dia/semana/mês com agregação) — defer M5+. MVP é cost LIVE da sessão atual apenas (§9.1)
 - **Animated GIFs** pro Meet guide — usa screenshots estáticos pro MVP
 - **Tour interativo** in-bar — fora de scope, wizard é first-launch only
 - **Onboarding video** — out of scope
