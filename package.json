@@ -1,6 +1,6 @@
 {
   "name": "realtime-translate",
-  "version": "0.2.0-m2",
+  "version": "0.3.0-m3",
   "description": "Realtime translation app for Google Meet powered by OpenAI gpt-realtime-translate",
   "main": "out/main/app.js",
   "type": "module",

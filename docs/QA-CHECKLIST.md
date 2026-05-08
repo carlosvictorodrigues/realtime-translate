@@ -173,3 +173,89 @@ Update `docs/superpowers/spikes/2026-05-07-setsinkid-spike.md` with M2 smoke res
 ```powershell
 git tag -a v0.2.0-m2 -m "M2: bidirectional PT<->EN translation"
 ```
+
+---
+
+## M3 End-to-End Smoke Test (FloatingWidget UI)
+
+Final manual gate before tagging M3. Exercises the new shipping UI: a transparent always-on-top floating bar that replaces the M2 BidirectionalTestRig, plus the SetupView one-time wizard, prefs persistence, and the reconnecting/error visualizations.
+
+### Prerequisites
+
+- All M2 prerequisites (VB-CABLE A+B, second-device Meet participant, no "Listen to this device" on cable outputs)
+- A clean prefs file recommended for first-launch path verification:
+  ```powershell
+  Remove-Item "$env:APPDATA\realtime-translate\prefs.json" -ErrorAction SilentlyContinue
+  Remove-Item "$env:APPDATA\realtime-translate\apikey.bin" -ErrorAction SilentlyContinue
+  ```
+
+### First-launch flow
+
+1. **Build and launch:**
+   ```powershell
+   npm run dev
+   ```
+   Expected: SetupView window opens. The floating bar is NOT visible because the API key + 4 devices haven't been configured yet.
+
+2. **Save API key in SetupView:** paste your OpenAI key, click Save. Confirm the input is replaced by a masked display ending in your key's last 4 chars.
+
+3. **Pick all 4 devices** (mic, to-Meet = `CABLE-A Input`, from-Meet = `CABLE-B Output`, headset) per the M2 procedure. Confirm `(recommended)` shows for the cable entries.
+
+4. **Click "Concluir setup → abrir barra".** Expected: the floating bar appears (centered above the taskbar, ~480×40, transparent, always-on-top), and the SetupView window closes.
+
+5. **Verify devices/lang persisted:** close the app entirely (Alt+F4 on the bar). Run `npm run dev` again. Expected: bar appears immediately, SetupView is NOT shown — setup is remembered.
+
+### Bar workflow
+
+6. **Initial state** (after subsequent launches): bar shows orb (idle/grey), `PT ↔ EN` lang pair, ▶ play action button, ⚙ gear. Width ~150px.
+
+7. **Click ▶ play.** Bar transitions: orb pulses accent → "Conectando…" status text → orb pulses accent + waveform animates + latency tag appears + ⏸ pause button. Width grows to ~290px.
+
+8. **Test Direction A (you → them):** speak Portuguese for 5–10 seconds into your headset mic. Within ~3 seconds your second device should hear English. The latency tag updates to reflect the t1−t0 moving average.
+
+9. **Test Direction B (them → you):** speak English on your second device. Within ~3 seconds you should hear Portuguese in your headset.
+
+10. **Click ⏸ pause.** Bar returns to idle (orb grey, no waveform, ▶ play restored, lang pair visible). Devices stay selected.
+
+11. **Click ▶ resume.** Reconnects within ~1-2s, no need to reselect devices/languages. Latency tag clears briefly then resumes.
+
+12. **Drag the bar.** Move it to a different screen position. Close the app. Run `npm run dev` again. Expected: bar reappears at the dragged position.
+
+13. **Click ⚙ gear.** Expected: SetupView window opens (with current devices/key already populated). Close it via the window X.
+
+### Reconnecting / error states
+
+14. **Reconnecting smoke (optional, real network):** with translation active, briefly disable Wi-Fi for 3-5 seconds. Expected: bar background tinges yellow, orb turns yellow and pulses fast, lang pair is replaced by `Reconectando · {origin}: tentativa N`, ⏸ pause stays visible. Re-enable Wi-Fi. Bar returns to active.
+
+15. **Error smoke (optional, deliberate):** stop translation. Open SetupView via ⚙, replace the API key with an invalid value, save. Click ▶ on the bar. Expected: bar background tinges red, orb turns red, status shows the truncated error message (28 chars + ellipsis), action button becomes ↻ retry. Click ⚙ to reopen SetupView and restore the valid key.
+
+### Pass criteria
+
+- [ ] First-launch routes to SetupView; bar does not appear pre-setup
+- [ ] "Concluir setup" button enabled only when all 4 devices + key are present
+- [ ] After Concluir setup, bar appears and SetupView closes
+- [ ] Subsequent launches show the bar immediately (no SetupView)
+- [ ] Bar shows the correct icon for each state (▶ idle, ⏸ active, ↻ error)
+- [ ] Active state shows waveform + latency tag
+- [ ] Pause/resume works without device reselection
+- [ ] Drag persists across restarts
+- [ ] Reconnecting state visually distinct (yellow tint + pulsing orb + status text)
+- [ ] Error state visually distinct (red tint + retry button + truncated message)
+- [ ] ⚙ opens SetupView; lang pair click also opens it
+- [ ] Production build (`npm run build`) emits 3 HTML entries (offscreen, floating-widget, setup-view) and no `index.html`
+
+### Common failures
+
+- **Bar invisible after Concluir setup:** check that prefs.json got written (`$env:APPDATA\realtime-translate\prefs.json`). If empty, the IPC handler probably failed — check console output.
+- **Bar appears but click-through is broken:** the floating window has `setIgnoreMouseEvents` toggled per pointer region. If clicks fall through everywhere, the pointer-region forwarding regressed.
+- **SetupView opens after every launch:** prefs aren't being read on startup, or the "all 4 devices + key present" gate is too strict. Check `selectIsSetupComplete` and the bootstrap flow.
+- **Reconnecting tint never appears:** the bar reads from the bidirectional store; check that `cableA`/`cableB` status events propagate to the floating widget renderer.
+- **Same as M1/M2 failures** (status stays connecting, mic permission, etc.) apply here too.
+
+### After PASS
+
+Update `docs/superpowers/spikes/2026-05-07-setsinkid-spike.md` with the M3 smoke result mirroring the M1/M2 entries. Then tag:
+
+```powershell
+git tag -a v0.3.0-m3 -m "M3: FloatingWidget UI + prefs persistence + backend follow-ups"
+```
