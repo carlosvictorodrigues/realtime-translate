@@ -4,6 +4,7 @@ import { WizardShell } from './wizard/WizardShell';
 import { Step1Welcome } from './wizard/Step1Welcome';
 import { Step2ApiKey } from './wizard/Step2ApiKey';
 import { Step3Cables } from './wizard/Step3Cables';
+import { Step4Devices } from './wizard/Step4Devices';
 
 // Stub steps — Tasks 8-11 replace with real components.
 const StubStep = ({ n }: { n: number }): JSX.Element => (
@@ -18,6 +19,7 @@ function renderStep(route: WizardRoute): JSX.Element {
     case 1: return <Step1Welcome />;
     case 2: return <Step2ApiKey mode={route.mode} />;
     case 3: return <Step3Cables mode={route.mode} />;
+    case 4: return <Step4Devices mode={route.mode} />;
     default: return <StubStep n={route.step} />;
   }
 }

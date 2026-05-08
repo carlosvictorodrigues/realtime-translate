@@ -73,6 +73,19 @@
       "installStep2": "Extraia o conteúdo numa pasta",
       "installStep3": "Rode VBCABLE_Setup_x64.exe como administrador",
       "installStep4": "Reinicie o PC após instalar"
+    },
+    "devices": {
+      "label": "Dispositivos",
+      "heading": "Seus dispositivos de áudio",
+      "sub": "Selecione qual mic e fone você usa.",
+      "mic": "Microfone (sua voz)",
+      "toMeet": "Saída pro Meet",
+      "fromMeet": "Captura do Meet",
+      "headset": "Fone (você ouve a tradução)",
+      "languagesLabel": "Idiomas (você ↔ interlocutor)",
+      "recommended": "(recomendado)",
+      "missingError": "Selecione todos os 4 dispositivos",
+      "selectPlaceholder": "— selecione —"
     }
   }
 }
