@@ -118,5 +118,30 @@
       "confirmHeardPt": "Você ouviu uma frase em português no seu fone?",
       "userNoAudio": "Áudio não confirmado pelo usuário"
     }
+  },
+  "review": {
+    "heading": "Configurações",
+    "sub": "Tudo já configurado. Edite o que precisar — clicar em 'Editar' abre o passo correspondente do wizard.",
+    "section": {
+      "key": "OpenAI API Key",
+      "keyValue": "●●●●{{last4}} · safeStorage",
+      "keyMissing": "Não configurada",
+      "cables": "VB-CABLE A · B",
+      "cablesOk": "Detectados — pronto pra rotear áudio",
+      "cablesMissing": "Não detectados — instale e re-detecte",
+      "languages": "Idiomas",
+      "devices": "Dispositivos",
+      "devicesValue": "Mic: {{mic}} · Saída Meet: {{toMeet}} · Entrada Meet: {{fromMeet}} · Fone: {{headset}}",
+      "meet": "Configurar Google Meet",
+      "meetValue": "Mic = CABLE-A Output · Speaker = CABLE-B Input · não conseguimos verificar automaticamente",
+      "edit": "Editar",
+      "rescan": "Re-detectar",
+      "viewGuide": "Ver guia"
+    },
+    "footer": {
+      "test": "Testar tradução",
+      "quit": "Sair do app",
+      "close": "Fechar"
+    }
   }
 }

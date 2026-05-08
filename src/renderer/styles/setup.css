@@ -264,3 +264,35 @@
   font-size: 12px;
   font-weight: 600;
 }
+
+.review-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.review-icon {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.review-icon.ok { background: rgba(74, 222, 128, 0.12); color: var(--success); }
+.review-icon.warn { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+.review-content { flex: 1; }
+.review-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.review-value {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+.review-edit { flex-shrink: 0; }

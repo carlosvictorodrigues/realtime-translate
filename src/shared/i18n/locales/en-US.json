@@ -118,5 +118,30 @@
       "confirmHeardPt": "Did you hear a phrase in Portuguese in your headphones?",
       "userNoAudio": "Audio not confirmed by user"
     }
+  },
+  "review": {
+    "heading": "Settings",
+    "sub": "Everything's configured. Edit anything that needs adjusting — clicking 'Edit' opens the corresponding wizard step.",
+    "section": {
+      "key": "OpenAI API Key",
+      "keyValue": "●●●●{{last4}} · safeStorage",
+      "keyMissing": "Not configured",
+      "cables": "VB-CABLE A · B",
+      "cablesOk": "Detected — ready to route audio",
+      "cablesMissing": "Not detected — install and re-detect",
+      "languages": "Languages",
+      "devices": "Devices",
+      "devicesValue": "Mic: {{mic}} · Output to Meet: {{toMeet}} · Capture from Meet: {{fromMeet}} · Headset: {{headset}}",
+      "meet": "Configure Google Meet",
+      "meetValue": "Mic = CABLE-A Output · Speaker = CABLE-B Input · we can't verify this automatically",
+      "edit": "Edit",
+      "rescan": "Re-detect",
+      "viewGuide": "View guide"
+    },
+    "footer": {
+      "test": "Test translation",
+      "quit": "Quit app",
+      "close": "Close"
+    }
   }
 }
