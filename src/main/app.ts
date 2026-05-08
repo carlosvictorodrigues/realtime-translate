@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, session } from 'electron';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
@@ -202,6 +202,14 @@ async function createWindows(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
+  // Auto-grant `media` permission so the offscreen window can call
+  // navigator.mediaDevices.getUserMedia and enumerateDevices without a prompt.
+  // BYOK desktop app — the user already trusts this binary to access the mic.
+  // Other permissions (camera, notifications, etc.) are denied by default.
+  session.defaultSession.setPermissionRequestHandler((_wc, permission, callback) => {
+    callback(permission === 'media');
+  });
+
   await createWindows();
   if (!offscreenWindow || !mainWindow) throw new Error('windows not created');
 
@@ -219,6 +227,9 @@ app.whenReady().then(async () => {
   };
 
   // Forward declaration: handlers need runner, runner needs configStore. Use a holder pattern.
+  // The `let` is intentional — `runner` is reassigned below after `registerIpcHandlers` returns
+  // configStore. eslint can't see the closure pattern, so we suppress the warning here.
+  // eslint-disable-next-line prefer-const
   let runner: SessionRunner | undefined;
 
   const { configStore } = registerIpcHandlers({
