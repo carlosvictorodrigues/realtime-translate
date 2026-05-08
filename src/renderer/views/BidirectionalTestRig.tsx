@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useStore } from '../state/store';
 import { rt } from '../ipc/client';
 import { LANGUAGES, type LanguageCode } from '../../shared/languages';
+import type { SessionState } from '../../shared/types';
 
 export function BidirectionalTestRig(): JSX.Element {
   const {
@@ -117,6 +118,8 @@ export function BidirectionalTestRig(): JSX.Element {
         </div>
         <h1 style={{ fontSize: 18, fontWeight: 600 }}>Realtime Translate</h1>
       </header>
+
+      <ConnectionBanner stateA={stateA} stateB={stateB} />
 
       <section style={sectionStyle}>
         <label style={labelStyle}>OpenAI API Key</label>
@@ -343,3 +346,70 @@ const selectStyle: React.CSSProperties = {
   padding: '7px 10px',
   fontSize: 13,
 };
+
+/**
+ * Surfaces non-active session states (reconnecting / error) with a banner
+ * loud enough that the user notices a brief drop. Spec §7 requires this
+ * because real-time translation has no fallback — silence is meaningless
+ * unless the user knows the cause.
+ */
+function ConnectionBanner({
+  stateA,
+  stateB,
+}: {
+  stateA: SessionState;
+  stateB: SessionState;
+}): JSX.Element | null {
+  const hasError = stateA.kind === 'error' || stateB.kind === 'error';
+  const isReconnecting = stateA.kind === 'reconnecting' || stateB.kind === 'reconnecting';
+  if (!hasError && !isReconnecting) return null;
+
+  const color = hasError ? 'var(--error)' : 'var(--warning)';
+  const bg = hasError ? 'rgba(248, 113, 113, 0.12)' : 'rgba(245, 158, 11, 0.12)';
+  const border = hasError ? 'rgba(248, 113, 113, 0.32)' : 'rgba(245, 158, 11, 0.32)';
+  const headline = hasError ? 'Erro de conexão' : 'Conexão instável — reconectando';
+
+  const describe = (s: SessionState, label: string): string | undefined => {
+    if (s.kind === 'reconnecting') return `${label}: tentativa ${s.attempt}`;
+    if (s.kind === 'error') return `${label}: ${s.message}`;
+    return undefined;
+  };
+  const lines = [describe(stateA, 'A'), describe(stateB, 'B')].filter(
+    (x): x is string => x !== undefined,
+  );
+
+  return (
+    <div
+      role="alert"
+      style={{
+        padding: '10px 12px',
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 6,
+        fontSize: 12,
+        color,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 500 }}>
+        <span
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: '50%',
+            background: color,
+            flexShrink: 0,
+          }}
+        />
+        {headline}
+      </div>
+      {lines.map((l, i) => (
+        <div key={i} style={{ paddingLeft: 14, color: 'var(--text-secondary)' }}>
+          {l}
+        </div>
+      ))}
+    </div>
+  );
+}

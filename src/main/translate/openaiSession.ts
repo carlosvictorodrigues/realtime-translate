@@ -48,6 +48,12 @@ export class OpenAISession {
   private serverError = false;
   /** User-visible reconnect attempt counter. Resets on successful (re)open and on start(). */
   private attemptCount = 0;
+  /** False before the first successful open after start(); true thereafter. Distinguishes
+   * startup-buffer flush (legitimate) from reconnect-buffer replay (compounds latency). */
+  private hasOpenedOnce = false;
+  /** True while we're in an overflow event — gates the warn log to once per event. Reset
+   * on successful (re)open. */
+  private hasLoggedOverflow = false;
 
   constructor(private readonly cfg: OpenAISessionConfig) {
     this.backoff = new ExponentialBackoff(cfg.backoff ?? DEFAULT_BACKOFF);
@@ -60,6 +66,8 @@ export class OpenAISession {
   start(): void {
     this.userStopped = false;
     this.serverError = false;
+    this.hasOpenedOnce = false;
+    this.hasLoggedOverflow = false;
     this.backoff.reset();
     this.attemptCount = 0;
     this.connect();
@@ -70,9 +78,14 @@ export class OpenAISession {
       // Bound the pre-connect buffer — drop oldest on overflow (M1).
       if (this.pendingAudio.length >= MAX_PENDING_AUDIO) {
         this.pendingAudio.shift();
-        // TODO(Task 14): replace with structured logger
-        // eslint-disable-next-line no-console
-        console.warn('OpenAISession: pending audio buffer overflow, dropping oldest');
+        // Throttle: log once per overflow event, not per chunk. A multi-second
+        // disconnect would otherwise produce hundreds of identical warnings.
+        if (!this.hasLoggedOverflow) {
+          this.hasLoggedOverflow = true;
+          // TODO(Task 14): replace with structured logger
+          // eslint-disable-next-line no-console
+          console.warn('OpenAISession: pending audio buffer overflow, dropping oldest');
+        }
       }
       this.pendingAudio.push(base64);
       return;
@@ -132,10 +145,19 @@ export class OpenAISession {
         },
       },
     });
-    for (const chunk of this.pendingAudio) {
-      this.sendRaw({ type: 'session.input_audio_buffer.append', audio: chunk });
+    if (!this.hasOpenedOnce) {
+      // First open after start(): flush audio captured between start() and WS open.
+      // This is the legitimate startup window — typically 1-3s of buffered audio.
+      for (const chunk of this.pendingAudio) {
+        this.sendRaw({ type: 'session.input_audio_buffer.append', audio: chunk });
+      }
+      this.hasOpenedOnce = true;
     }
+    // On reconnect (hasOpenedOnce was already true), pendingAudio is intentionally
+    // discarded. Replaying it would shift OpenAI's input pipeline permanently behind
+    // real-time — for translation, live audio is more valuable than stale audio.
     this.pendingAudio = [];
+    this.hasLoggedOverflow = false;
     this.cfg.events.onState({ kind: 'active', sinceMs: Date.now() });
   }
 

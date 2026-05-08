@@ -392,6 +392,64 @@ describe('OpenAISession', () => {
     expect(JSON.parse(ws.sent[200]!).audio).toBe('chunk-204');
   });
 
+  it('reconnect discards stale pending audio (live > stale for real-time translation)', () => {
+    // Replaying buffered audio on reconnect shifts OpenAI's input pipeline
+    // permanently behind real-time, compounding latency. Drop instead.
+    vi.useFakeTimers();
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+        backoff: { baseMs: 100, maxMs: 1000, maxAttempts: 5 },
+      });
+      session.start();
+      const ws1 = FakeWebSocket.instances[0]!;
+      ws1.simulateOpen();
+      // First connect already happened; clear the session.update that landed on ws1.
+      ws1.close(1006, 'abnormal');
+
+      // Mic continues capturing during the reconnect window — feed stale chunks.
+      for (let i = 0; i < 50; i++) {
+        session.appendAudio(`stale-${i}`);
+      }
+
+      // Reconnect succeeds.
+      vi.advanceTimersByTime(100);
+      const ws2 = FakeWebSocket.instances[1]!;
+      ws2.simulateOpen();
+
+      // ws2 should have ONLY session.update — stale audio is discarded.
+      expect(ws2.sent).toHaveLength(1);
+      expect(JSON.parse(ws2.sent[0]!).type).toBe('session.update');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('overflow log fires once per overflow event, not per chunk', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const session = new OpenAISession({
+        apiKey: 'sk',
+        sourceLang: 'pt',
+        targetLang: 'en',
+        events,
+        wsFactory: fakeFactory,
+      });
+      session.start();
+      // 5 chunks past the cap → without throttling this would warn 5 times.
+      for (let i = 0; i < 205; i++) {
+        session.appendAudio(`chunk-${i}`);
+      }
+      expect(warnSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      warnSpy.mockRestore();
+    }
+  });
+
   it('warns on malformed JSON messages instead of silently dropping', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     try {
