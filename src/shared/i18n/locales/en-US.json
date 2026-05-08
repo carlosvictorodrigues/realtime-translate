@@ -57,6 +57,22 @@
       "howToStep1": "Create an account at platform.openai.com",
       "howToStep2": "Set up billing (Settings → Billing)",
       "howToStep3": "Create an API key (API Keys → Create new secret key)"
+    },
+    "cables": {
+      "label": "Virtual cables",
+      "detecting": "Detecting…",
+      "detectedHeading": "VB-CABLE A+B detected ✓",
+      "detectedSub": "Ready to route audio between you and Meet.",
+      "missingHeading": "You need to install VB-CABLE A+B",
+      "missingSub": "It's a pair of virtual audio cables. Third-party software (donationware), safe and widely used.",
+      "downloadButton": "Download VB-CABLE A+B",
+      "rescanButton": "I've installed it, re-detect",
+      "howToToggle": "How do I install?",
+      "rescanFailToast": "Didn't detect it. Did you reboot after installing?",
+      "installStep1": "Download the ZIP from the VB-Audio site",
+      "installStep2": "Extract the contents to a folder",
+      "installStep3": "Run VBCABLE_Setup_x64.exe as administrator",
+      "installStep4": "Reboot your PC after installing"
     }
   }
 }
