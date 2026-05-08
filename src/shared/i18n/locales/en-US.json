@@ -96,6 +96,23 @@
       "step3": "Go to the 'Audio' tab",
       "step4": "Microphone: select 'CABLE-A Output (VB-Audio Cable A)'",
       "step5": "Speakers: select 'CABLE-B Input (VB-Audio Cable B)' (NOT the '16ch' one)"
+    },
+    "test": {
+      "label": "Test translation",
+      "heading": "Test translation",
+      "sub": "Let's validate everything works with 2 short calls to OpenAI (~$0.10 total). You can skip if you prefer.",
+      "directionA": "Direction A (PT → EN)",
+      "directionAExplain": "App will speak a Portuguese phrase, translate to English, and validate that the cable receives it.",
+      "directionB": "Direction B (EN → PT)",
+      "directionBExplain": "App will speak an English phrase, translate to Portuguese, and play it on your headset.",
+      "runTestA": "Test PT → EN",
+      "runTestB": "Test EN → PT",
+      "running": "Testing…",
+      "passed": "✓ Passed",
+      "failed": "✗ Failed: {{reason}}",
+      "skipWarning": "Translation may fail on the first call if something is misconfigured.",
+      "skip": "Skip and open the bar",
+      "finish": "Finish setup →"
     }
   }
 }

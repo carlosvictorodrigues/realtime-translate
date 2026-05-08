@@ -96,6 +96,23 @@
       "step3": "Vá pra aba 'Áudio'",
       "step4": "Microfone: selecione 'CABLE-A Output (VB-Audio Cable A)'",
       "step5": "Alto-falantes: selecione 'CABLE-B Input (VB-Audio Cable B)' (NÃO o '16ch')"
+    },
+    "test": {
+      "label": "Testar tradução",
+      "heading": "Testar tradução",
+      "sub": "Vamos validar que tudo funciona com 2 calls curtas pra OpenAI (~$0.10 total). Pode pular se preferir.",
+      "directionA": "Direction A (PT → EN)",
+      "directionAExplain": "App vai falar uma frase em português, traduzir pra inglês, e validar que o cabo recebe.",
+      "directionB": "Direction B (EN → PT)",
+      "directionBExplain": "App vai falar uma frase em inglês, traduzir pra português, e tocar no seu fone.",
+      "runTestA": "Testar PT → EN",
+      "runTestB": "Testar EN → PT",
+      "running": "Testando…",
+      "passed": "✓ Passou",
+      "failed": "✗ Falhou: {{reason}}",
+      "skipWarning": "Tradução pode falhar na primeira chamada se algo tiver mal configurado.",
+      "skip": "Pular e abrir barra",
+      "finish": "Concluir setup →"
     }
   }
 }
