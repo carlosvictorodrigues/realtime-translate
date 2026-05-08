@@ -14,6 +14,9 @@ export const IPC = {
   PrefsSetLanguages: 'prefs:setLanguages',
   PrefsSetDevices: 'prefs:setDevices',
 
+  // Window management (Renderer → Main, invoke)
+  OpenSetupView: 'window:openSetupView',
+
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',

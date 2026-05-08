@@ -19,14 +19,18 @@ import type {
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const DEV_BASE = process.env.ELECTRON_RENDERER_URL;
-const RENDERER_URL = DEV_BASE
-  ? `${DEV_BASE.replace(/\/$/, '')}/index.html`
-  : `file://${resolve(__dirname, '../renderer/index.html')}`;
+const FLOATING_WIDGET_URL = DEV_BASE
+  ? `${DEV_BASE.replace(/\/$/, '')}/floating-widget.html`
+  : `file://${resolve(__dirname, '../renderer/floating-widget.html')}`;
+const SETUP_VIEW_URL = DEV_BASE
+  ? `${DEV_BASE.replace(/\/$/, '')}/setup-view.html`
+  : `file://${resolve(__dirname, '../renderer/setup-view.html')}`;
 const OFFSCREEN_URL = DEV_BASE
   ? `${DEV_BASE.replace(/\/$/, '')}/offscreen.html`
   : `file://${resolve(__dirname, '../renderer/offscreen.html')}`;
 
-let mainWindow: BrowserWindow | null = null;
+let floatingWidget: BrowserWindow | null = null;
+let setupView: BrowserWindow | null = null;
 let offscreenWindow: BrowserWindow | null = null;
 let logSink: JsonlSink | undefined;
 
@@ -146,9 +150,34 @@ async function createWindows(): Promise<void> {
   });
   await offscreenWindow.loadURL(OFFSCREEN_URL);
 
-  mainWindow = new BrowserWindow({
-    width: 360,
-    height: 520,
+  floatingWidget = new BrowserWindow({
+    width: 480,
+    height: 40,
+    frame: false,
+    transparent: true,
+    hasShadow: false,
+    alwaysOnTop: true,
+    resizable: false,
+    skipTaskbar: true,
+    backgroundColor: '#00000000',
+    webPreferences: {
+      preload: join(__dirname, '../preload/preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  floatingWidget.setAlwaysOnTop(true, 'screen-saver');
+  await floatingWidget.loadURL(FLOATING_WIDGET_URL);
+}
+
+async function createSetupView(): Promise<BrowserWindow> {
+  if (setupView && !setupView.isDestroyed()) {
+    setupView.focus();
+    return setupView;
+  }
+  setupView = new BrowserWindow({
+    width: 720,
+    height: 640,
     backgroundColor: '#08090a',
     webPreferences: {
       preload: join(__dirname, '../preload/preload.cjs'),
@@ -156,7 +185,11 @@ async function createWindows(): Promise<void> {
       nodeIntegration: false,
     },
   });
-  await mainWindow.loadURL(RENDERER_URL);
+  setupView.on('closed', () => {
+    setupView = null;
+  });
+  await setupView.loadURL(SETUP_VIEW_URL);
+  return setupView;
 }
 
 app.whenReady().then(async () => {
@@ -169,7 +202,7 @@ app.whenReady().then(async () => {
   });
 
   await createWindows();
-  if (!offscreenWindow || !mainWindow) throw new Error('windows not created');
+  if (!offscreenWindow || !floatingWidget) throw new Error('windows not created');
 
   const logsDir = join(app.getPath('userData'), 'logs');
   const sessionId = `${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}`;
@@ -179,8 +212,8 @@ app.whenReady().then(async () => {
   const offscreenBridge = new OffscreenBridge(offscreenWindow);
 
   const emitDirectionalState = (s: DirectionalState): void => {
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send(IPC.DirectionalStateChanged, s);
+    if (floatingWidget && !floatingWidget.isDestroyed() && !floatingWidget.webContents.isDestroyed()) {
+      floatingWidget.webContents.send(IPC.DirectionalStateChanged, s);
     }
   };
   const emitTranscript = (t: {
@@ -188,13 +221,13 @@ app.whenReady().then(async () => {
     kind: 'input' | 'output';
     text: string;
   }): void => {
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send(IPC.TranscriptDelta, t);
+    if (floatingWidget && !floatingWidget.isDestroyed() && !floatingWidget.webContents.isDestroyed()) {
+      floatingWidget.webContents.send(IPC.TranscriptDelta, t);
     }
   };
   const emitLatency = (m: { direction: Direction; averageMs: number; sampleCount: number }): void => {
-    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send(IPC.LatencyMeasured, m);
+    if (floatingWidget && !floatingWidget.isDestroyed() && !floatingWidget.webContents.isDestroyed()) {
+      floatingWidget.webContents.send(IPC.LatencyMeasured, m);
     }
   };
 
@@ -256,6 +289,9 @@ app.whenReady().then(async () => {
       manager = undefined;
     },
     listDevices: () => buildDeviceInventory(offscreenWindow!),
+    openSetupView: async () => {
+      await createSetupView();
+    },
   });
   // prefsStore is referenced in Tasks 10/11; destructure now to expose it.
   void prefsStore;

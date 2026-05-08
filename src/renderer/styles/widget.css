@@ -1,0 +1,26 @@
+@import './tokens.css';
+
+html, body, #root {
+  background: transparent;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.floating-widget-placeholder {
+  background: rgba(28, 30, 36, 0.78);
+  -webkit-backdrop-filter: blur(40px) saturate(140%);
+  backdrop-filter: blur(40px) saturate(140%);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 8px 12px;
+  font-size: 12px;
+  width: max-content;
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}

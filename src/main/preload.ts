@@ -34,6 +34,9 @@ const api = {
     devices: IpcInvokeMap[typeof IPC.PrefsSetDevices]['args'],
   ): Promise<void> => ipcRenderer.invoke(IPC.PrefsSetDevices, devices),
 
+  openSetupView: (): Promise<IpcInvokeMap[typeof IPC.OpenSetupView]['result']> =>
+    ipcRenderer.invoke(IPC.OpenSetupView),
+
   onDirectionalState: (
     cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
   ): (() => void) => {
