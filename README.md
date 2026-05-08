@@ -24,6 +24,26 @@ flowchart LR
 
 ---
 
+## 🚀 Get started (no coding required)
+
+**[⬇️ Download the latest installer](https://github.com/carlosvictorodrigues/realtime-translate/releases/latest)** → grab `Realtime Translate Setup X.X.X.exe` (~106 MB).
+
+### Before you install, you'll need:
+
+- 🪟 **Windows 10 or 11** (macOS / Linux not yet supported)
+- 🔑 **An OpenAI account with billing enabled** — [sign up](https://platform.openai.com/signup), then add a card under Settings → Billing. Cost: ~**$2 per hour of conversation**, paid directly to OpenAI — no middleman, no subscription
+- 🔌 **VB-CABLE A+B** — free virtual audio cable software (the in-app wizard walks you through installing it)
+
+### When you open the installer:
+
+Windows will show a blue **"Windows protected your PC"** warning because the installer isn't code-signed yet. Click **"More info"** → **"Run anyway"**. It's safe — the full source code is in this repo and the installer is built by [GitHub Actions](.github/workflows/release.yml) from a public commit.
+
+After install, open the app and a **5-minute setup wizard** walks you through everything: OpenAI key → virtual cables → audio devices → Google Meet config → quick translation test. Auto-update is built in — new versions download in the background and prompt you to restart.
+
+> 👨‍💻 **Developer?** Skip to [Quick start (developers)](#quick-start-developers) or [Architecture](#architecture).
+
+---
+
 ## Table of contents
 
 - [What it does](#what-it-does)
