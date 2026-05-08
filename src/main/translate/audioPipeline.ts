@@ -2,7 +2,9 @@ export interface OffscreenController {
   startCapture(streamId: string, deviceId: string, onPcm: (b64: string) => void): Promise<void>;
   startPlayback(streamId: string, deviceId: string): Promise<void>;
   pushPlayback(streamId: string, b64: string): void;
+  /** Stops capture + playback for one stream. Use this on per-direction stop. */
   stopStream(streamId: string): void;
+  /** Stops all streams and releases the offscreen window's audio resources. App-shutdown only. */
   stopAll(): void;
 }
 

@@ -53,37 +53,48 @@ const wsFactory: WebSocketFactory = (url, headers) => {
 };
 
 class OffscreenBridge implements OffscreenController {
-  private pcmCallback: ((b64: string) => void) | undefined;
+  private pcmCallbacks = new Map<string, (b64: string) => void>();
 
   constructor(private readonly window: BrowserWindow) {
-    ipcMain.on('offscreen:pcm', (_e, b64: string) => this.pcmCallback?.(b64));
+    ipcMain.on('offscreen:pcm', (_e, payload: { streamId: string; base64: string }) => {
+      this.pcmCallbacks.get(payload.streamId)?.(payload.base64);
+    });
   }
 
   private isAlive(): boolean {
     return !this.window.isDestroyed() && !this.window.webContents.isDestroyed();
   }
 
-  async startCapture(deviceId: string, onPcm: (b64: string) => void): Promise<void> {
-    this.pcmCallback = onPcm;
+  async startCapture(
+    streamId: string,
+    deviceId: string,
+    onPcm: (b64: string) => void,
+  ): Promise<void> {
+    this.pcmCallbacks.set(streamId, onPcm);
     if (!this.isAlive()) return;
     await this.window.webContents.executeJavaScript(
-      `window.offscreen.startCapture(${JSON.stringify(deviceId)})`,
+      `window.offscreen.startCapture(${JSON.stringify(streamId)}, ${JSON.stringify(deviceId)})`,
     );
   }
-  async startPlayback(deviceId: string): Promise<void> {
+  async startPlayback(streamId: string, deviceId: string): Promise<void> {
     if (!this.isAlive()) return;
     await this.window.webContents.executeJavaScript(
-      `window.offscreen.startPlayback(${JSON.stringify(deviceId)})`,
+      `window.offscreen.startPlayback(${JSON.stringify(streamId)}, ${JSON.stringify(deviceId)})`,
     );
   }
-  pushPlayback(b64: string): void {
+  pushPlayback(streamId: string, b64: string): void {
     if (!this.isAlive()) return;
-    this.window.webContents.send('offscreen:pushPlayback', b64);
+    this.window.webContents.send('offscreen:pushPlayback', { streamId, base64: b64 });
+  }
+  stopStream(streamId: string): void {
+    this.pcmCallbacks.delete(streamId);
+    if (!this.isAlive()) return;
+    this.window.webContents
+      .executeJavaScript(`window.offscreen.stopStream(${JSON.stringify(streamId)})`)
+      .catch(() => undefined);
   }
   stopAll(): void {
-    // Clear callback BEFORE telling offscreen to stop, so any in-flight PCM
-    // chunks already past the renderer can't reach a now-stale session.
-    this.pcmCallback = undefined;
+    this.pcmCallbacks.clear();
     if (!this.isAlive()) return;
     this.window.webContents
       .executeJavaScript('window.offscreen.stopAll()')
@@ -123,6 +134,7 @@ class SessionRunner {
     // M1 interim shim: route Direction A's output to the to-Meet cable.
     // M2's SessionManager (Task 6) properly drives both directions.
     this.pipeline = new AudioPipeline({
+      streamId: 'A', // M1 shim — Task 6's SessionManager handles both directions
       offscreen: this.offscreen,
       session: this.session,
       micDeviceId: args.micDeviceId,

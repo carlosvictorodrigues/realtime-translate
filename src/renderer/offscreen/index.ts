@@ -8,63 +8,66 @@ import {
 
 declare global {
   interface Window {
-    /** Public API the main process calls via webContents.executeJavaScript. */
     offscreen: {
       listDevices(): Promise<{ deviceId: string; label: string; kind: string }[]>;
-      startCapture(micDeviceId: string): Promise<void>;
-      startPlayback(outDeviceId: string): Promise<void>;
-      pushPlayback(base64: string): void;
+      startCapture(streamId: string, micDeviceId: string): Promise<void>;
+      startPlayback(streamId: string, outDeviceId: string): Promise<void>;
+      pushPlayback(streamId: string, base64: string): void;
+      stopStream(streamId: string): void;
       stopAll(): void;
     };
-    /**
-     * IPC bridge installed by the offscreen preload (Task 14).
-     * onPushPlayback receives base64 PCM16 from main; sendPcm forwards captured chunks to main.
-     */
     offscreenBridge?: {
-      onPushPlayback(handler: (base64: string) => void): void;
-      sendPcm(base64: string): void;
+      onPushPlayback(handler: (streamId: string, base64: string) => void): void;
+      sendPcm(streamId: string, base64: string): void;
     };
   }
 }
 
-let capture: CaptureHandle | undefined;
-let playback: PlaybackHandle | undefined;
+const captures = new Map<string, CaptureHandle>();
+const playbacks = new Map<string, PlaybackHandle>();
 
 window.offscreen = {
   async listDevices() {
     const devs = await listDevices();
     return devs.map((d) => ({ deviceId: d.deviceId, label: d.label, kind: d.kind }));
   },
-  async startCapture(micDeviceId) {
-    capture?.stop();
-    capture = await startCapture(micDeviceId, (b64) => {
-      window.offscreenBridge?.sendPcm(b64);
-    });
+  async startCapture(streamId, micDeviceId) {
+    captures.get(streamId)?.stop();
+    captures.set(
+      streamId,
+      await startCapture(micDeviceId, (b64) => {
+        window.offscreenBridge?.sendPcm(streamId, b64);
+      }),
+    );
   },
-  async startPlayback(outDeviceId) {
-    playback?.stop();
-    playback = await startPlayback(outDeviceId);
+  async startPlayback(streamId, outDeviceId) {
+    playbacks.get(streamId)?.stop();
+    playbacks.set(streamId, await startPlayback(outDeviceId));
   },
-  pushPlayback(base64) {
-    playback?.push(base64);
+  pushPlayback(streamId, base64) {
+    playbacks.get(streamId)?.push(base64);
+  },
+  stopStream(streamId) {
+    captures.get(streamId)?.stop();
+    playbacks.get(streamId)?.stop();
+    captures.delete(streamId);
+    playbacks.delete(streamId);
   },
   stopAll() {
-    capture?.stop();
-    playback?.stop();
-    capture = undefined;
-    playback = undefined;
+    for (const c of captures.values()) c.stop();
+    for (const p of playbacks.values()) p.stop();
+    captures.clear();
+    playbacks.clear();
   },
 };
 
-// Wire incoming-from-main playback chunks to the playback handle.
-// Contract: Task 14's preload script must run BEFORE this module (Electron's
-// default preload-runs-first behavior) and install `window.offscreenBridge`.
-// If it's missing here, the IPC bridge is broken — fail loud rather than silently no-op.
 if (!window.offscreenBridge) {
   // eslint-disable-next-line no-console
-  console.error('OffscreenBridge not installed. Did the preload script run? Captured audio will not reach main process.');
+  console.error(
+    'OffscreenBridge not installed. Did the preload script run? Captured audio will not reach main process.',
+  );
 } else {
-  window.offscreenBridge.onPushPlayback((base64) => {
-    window.offscreen.pushPlayback(base64);
+  window.offscreenBridge.onPushPlayback((streamId, base64) => {
+    window.offscreen.pushPlayback(streamId, base64);
   });
 }

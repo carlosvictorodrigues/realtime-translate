@@ -1,11 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 const bridge = {
-  onPushPlayback: (handler: (base64: string) => void): void => {
-    ipcRenderer.on('offscreen:pushPlayback', (_e, base64: string) => handler(base64));
+  onPushPlayback: (handler: (streamId: string, base64: string) => void): void => {
+    ipcRenderer.on(
+      'offscreen:pushPlayback',
+      (_e, payload: { streamId: string; base64: string }) =>
+        handler(payload.streamId, payload.base64),
+    );
   },
-  sendPcm: (base64: string): void => {
-    ipcRenderer.send('offscreen:pcm', base64);
+  sendPcm: (streamId: string, base64: string): void => {
+    ipcRenderer.send('offscreen:pcm', { streamId, base64 });
   },
 };
 
