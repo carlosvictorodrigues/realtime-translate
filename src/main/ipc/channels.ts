@@ -40,10 +40,13 @@ export interface IpcInvokeMap {
     args: { direction: Direction; deviceId: string; base64: string };
     result: void;
   };
+  [IPC.ApplyUpdate]: { args: void; result: void };
 }
 
 export interface IpcSendMap {
   [IPC.DirectionalStateChanged]: DirectionalState;
   [IPC.TranscriptDelta]: { direction: 'A' | 'B'; kind: 'input' | 'output'; text: string };
   [IPC.LatencyMeasured]: { direction: Direction; averageMs: number; sampleCount: number };
+  [IPC.UpdateAvailable]: { version: string };
+  [IPC.UpdateDownloaded]: { version: string };
 }

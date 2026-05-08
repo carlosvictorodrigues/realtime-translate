@@ -116,6 +116,33 @@ const api = {
       ipcRenderer.off(IPC.LatencyMeasured, handler);
     };
   },
+
+  // Auto-update bindings (M5 Task 6). Main broadcasts UpdateAvailable +
+  // UpdateDownloaded as the wrapper sees those events from electron-updater;
+  // FloatingWidget shows a badge in response. Clicking the badge invokes
+  // ApplyUpdate, which calls autoUpdater.quitAndInstall().
+  applyUpdate: (): Promise<IpcInvokeMap[typeof IPC.ApplyUpdate]['result']> =>
+    ipcRenderer.invoke(IPC.ApplyUpdate),
+  onUpdateAvailable: (
+    cb: (info: IpcSendMap[typeof IPC.UpdateAvailable]) => void,
+  ): (() => void) => {
+    const handler = (_evt: unknown, info: IpcSendMap[typeof IPC.UpdateAvailable]): void =>
+      cb(info);
+    ipcRenderer.on(IPC.UpdateAvailable, handler);
+    return (): void => {
+      ipcRenderer.off(IPC.UpdateAvailable, handler);
+    };
+  },
+  onUpdateDownloaded: (
+    cb: (info: IpcSendMap[typeof IPC.UpdateDownloaded]) => void,
+  ): (() => void) => {
+    const handler = (_evt: unknown, info: IpcSendMap[typeof IPC.UpdateDownloaded]): void =>
+      cb(info);
+    ipcRenderer.on(IPC.UpdateDownloaded, handler);
+    return (): void => {
+      ipcRenderer.off(IPC.UpdateDownloaded, handler);
+    };
+  },
 };
 
 declare global {

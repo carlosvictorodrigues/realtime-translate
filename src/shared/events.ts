@@ -33,10 +33,15 @@ export const IPC = {
   LoopbackStart: 'audio:loopbackStart',
   TestRoutePlayback: 'test:routePlayback',
 
+  // Auto-update (Renderer → Main, invoke)
+  ApplyUpdate: 'app:applyUpdate',
+
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',
   LatencyMeasured: 'session:latencyMeasured',
+  UpdateAvailable: 'app:updateAvailable',
+  UpdateDownloaded: 'app:updateDownloaded',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

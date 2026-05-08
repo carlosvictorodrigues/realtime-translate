@@ -89,6 +89,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "electron-updater": "^6.8.3",
     "ws": "^8.20.0"
   },
   "devDependencies": {

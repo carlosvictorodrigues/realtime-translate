@@ -42,6 +42,7 @@ interface HandlerDeps {
     timeoutMs: number,
   ) => Promise<{ detected: boolean }>;
   runTestPlayback: (direction: Direction, deviceId: string, base64: string) => Promise<void>;
+  applyUpdate: () => Promise<void>;
 }
 
 type InvokeHandler<K extends keyof IpcInvokeMap> = (
@@ -88,4 +89,5 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.TestRoutePlayback, (_e, args) =>
     deps.runTestPlayback(args.direction, args.deviceId, args.base64),
   );
+  handle(IPC.ApplyUpdate, () => deps.applyUpdate());
 }

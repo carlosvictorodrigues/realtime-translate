@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 import { registerIpcHandlers } from './ipc/handlers';
 import { validateExternalUrl } from './ipc/openExternalUrl';
+import { setupAutoUpdate } from './updater';
 import { type WebSocketLike, type WebSocketFactory } from './translate/openaiSession';
 import { type OffscreenController } from './translate/audioPipeline';
 import { SessionManager } from './translate/sessionManager';
@@ -400,6 +401,18 @@ app.whenReady().then(async () => {
     offscreenBridge.pushPlayback(streamId, base64);
   };
 
+  // Auto-update wiring. Skipped in dev (app.isPackaged false). In production,
+  // setupAutoUpdate registers listeners on autoUpdater that broadcast version
+  // info to the FloatingWidget + SetupView so they can show "update available"
+  // / "update ready to install" badges. The user can click the badge (Task 7
+  // wires the UI) to invoke ApplyUpdate, which calls quitAndInstall(). Or
+  // they can just close the app naturally — autoInstallOnAppQuit=true applies
+  // the update on next quit.
+  const updater = setupAutoUpdate({
+    onAvailable: (version) => broadcast(IPC.UpdateAvailable, { version }),
+    onDownloaded: (version) => broadcast(IPC.UpdateDownloaded, { version }),
+  });
+
   registerIpcHandlers({
     configStore,
     prefsStore,
@@ -505,7 +518,17 @@ app.whenReady().then(async () => {
       runLoopback(offscreenWindow!, deviceId, thresholdRms, timeoutMs),
     runTestPlayback: (direction, deviceId, base64) =>
       runTestPlayback(direction, deviceId, base64),
+    applyUpdate: async () => {
+      updater.quitAndInstall();
+    },
   });
+
+  // 5-second delay so the auto-update check doesn't compete with first-launch
+  // wizard mounting. setTimeout is fire-and-forget — checkNow swallows its own
+  // errors so a network blip can't take down the main process.
+  setTimeout(() => {
+    void updater.checkNow();
+  }, 5000);
 });
 
 app.on('window-all-closed', () => {
