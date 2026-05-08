@@ -93,7 +93,7 @@ export function M1TestRig(): JSX.Element {
               marginTop: 4,
             }}
           >
-            ●●●●●●●●{apiKey.slice(-4)}{' '}
+            ●●●●●●●●{apiKey.length > 4 ? apiKey.slice(-4) : '••••'}{' '}
             <button
               onClick={(): void => {
                 void (async (): Promise<void> => {
