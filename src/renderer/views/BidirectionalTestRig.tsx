@@ -88,7 +88,12 @@ export function BidirectionalTestRig(): JSX.Element {
   };
 
   const onStop = async (): Promise<void> => {
-    await rt.stopTranslation();
+    setError(undefined);
+    try {
+      await rt.stopTranslation();
+    } catch (e) {
+      setError((e as Error).message);
+    }
   };
 
   const isAnyActive = stateA.kind === 'active' || stateB.kind === 'active';
