@@ -4,6 +4,7 @@ import type {
   UserPrefs, WidgetPosition, Languages, DevicePrefs,
 } from '../config/userPrefsStore';
 import type { Locale } from '../../shared/i18n';
+import type { LanguageCode } from '../../shared/languages';
 
 export interface IpcInvokeMap {
   [IPC.GetApiKeyStatus]: { args: void; result: boolean };
@@ -23,6 +24,21 @@ export interface IpcInvokeMap {
   [IPC.ShowBarMenu]: { args: void; result: void };
   [IPC.AppQuit]: { args: void; result: void };
   [IPC.ResolveLocale]: { args: void; result: Locale };
+  [IPC.TestSessionStart]: {
+    args: { direction: Direction; sourceLang: LanguageCode; targetLang: LanguageCode };
+    result: void;
+  };
+  [IPC.TestSessionInject]: { args: { direction: Direction; base64: string }; result: void };
+  [IPC.TestSessionInputDone]: { args: { direction: Direction }; result: void };
+  [IPC.TestSessionStop]: { args: { direction: Direction }; result: void };
+  [IPC.LoopbackStart]: {
+    args: { deviceId: string; thresholdRms: number; timeoutMs: number };
+    result: { detected: boolean };
+  };
+  [IPC.TestRoutePlayback]: {
+    args: { direction: Direction; deviceId: string; base64: string };
+    result: void;
+  };
 }
 
 export interface IpcSendMap {

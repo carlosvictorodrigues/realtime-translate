@@ -24,6 +24,14 @@ export const IPC = {
   // i18n (Renderer → Main, invoke)
   ResolveLocale: 'i18n:resolveLocale',
 
+  // Test Translation wizard step (Renderer → Main, invoke) — M4 Phase E
+  TestSessionStart: 'test:session:start',
+  TestSessionInject: 'test:session:inject',
+  TestSessionInputDone: 'test:session:inputDone',
+  TestSessionStop: 'test:session:stop',
+  LoopbackStart: 'audio:loopbackStart',
+  TestRoutePlayback: 'test:routePlayback',
+
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',

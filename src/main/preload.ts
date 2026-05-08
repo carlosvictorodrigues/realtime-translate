@@ -52,6 +52,41 @@ const api = {
   resolveLocale: (): Promise<IpcInvokeMap[typeof IPC.ResolveLocale]['result']> =>
     ipcRenderer.invoke(IPC.ResolveLocale),
 
+  // Test Translation (M4 Phase E) — see TestSessionRegistry + loopbackCapture.
+  testSessionStart: (
+    args: IpcInvokeMap[typeof IPC.TestSessionStart]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.TestSessionStart, args),
+  testSessionInject: (
+    args: IpcInvokeMap[typeof IPC.TestSessionInject]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.TestSessionInject, args),
+  testSessionInputDone: (
+    args: IpcInvokeMap[typeof IPC.TestSessionInputDone]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.TestSessionInputDone, args),
+  testSessionStop: (
+    args: IpcInvokeMap[typeof IPC.TestSessionStop]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.TestSessionStop, args),
+  loopbackStart: (
+    args: IpcInvokeMap[typeof IPC.LoopbackStart]['args'],
+  ): Promise<{ detected: boolean }> => ipcRenderer.invoke(IPC.LoopbackStart, args),
+  testRoutePlayback: (
+    args: IpcInvokeMap[typeof IPC.TestRoutePlayback]['args'],
+  ): Promise<void> => ipcRenderer.invoke(IPC.TestRoutePlayback, args),
+  /**
+   * Subscribe to translated audio chunks emitted by a TestSession. The channel
+   * name is dynamic (`test:audio:A` / `test:audio:B`) to keep per-direction
+   * subscriptions independent. Bypasses the typed IpcSendMap by design.
+   */
+  onTestAudio: (
+    direction: 'A' | 'B',
+    cb: (base64: string) => void,
+  ): (() => void) => {
+    const handler = (_evt: unknown, b64: string): void => cb(b64);
+    ipcRenderer.on(`test:audio:${direction}`, handler);
+    return (): void => {
+      ipcRenderer.off(`test:audio:${direction}`, handler);
+    };
+  },
+
   onDirectionalState: (
     cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
   ): (() => void) => {

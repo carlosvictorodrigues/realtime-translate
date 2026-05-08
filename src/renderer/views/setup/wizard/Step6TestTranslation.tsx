@@ -1,29 +1,117 @@
 import { useState, type JSX } from 'react';
 import { useT } from '../../../../shared/i18n/I18nProvider';
 import { rt } from '../../../ipc/client';
+import { useStore } from '../../../state/store';
 import { navigate } from '../shared/useHashRoute';
 
 type TestStatus = 'idle' | 'running' | 'passed' | 'failed';
 interface Result { status: TestStatus; reason?: string }
 
+/**
+ * Loads a bundled test WAV (24kHz mono PCM16) and returns 50ms PCM-only chunks
+ * encoded as base64 — ready to feed straight to OpenAI's
+ * `session.input_audio_buffer.append`.
+ *
+ * CRITICAL: relative path `./test/...`, not `/test/...`. The renderer loads
+ * setup-view.html via `file://` in production where a leading `/` resolves to
+ * the drive root, not the renderer's outDir. Same fix as Task 10's PNGs.
+ */
+async function loadTestWavAsPcmChunks(filename: string): Promise<string[]> {
+  const url = `./test/${filename}`;
+  const response = await fetch(url);
+  const arrayBuffer = await response.arrayBuffer();
+  // Skip 44-byte WAV header, read raw PCM16 little-endian.
+  const pcmBytes = new Uint8Array(arrayBuffer.slice(44));
+  const samplesPerChunk = (24000 * 50) / 1000; // 50ms chunks → 1200 samples → 2400 bytes
+  const chunkBytes = samplesPerChunk * 2;
+  const chunks: string[] = [];
+  for (let i = 0; i < pcmBytes.byteLength; i += chunkBytes) {
+    const slice = pcmBytes.slice(i, Math.min(i + chunkBytes, pcmBytes.byteLength));
+    let bin = '';
+    for (let j = 0; j < slice.length; j++) {
+      const byte = slice[j] ?? 0;
+      bin += String.fromCharCode(byte);
+    }
+    chunks.push(btoa(bin));
+  }
+  return chunks;
+}
+
 export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): JSX.Element {
   const t = useT();
+  const { selectedToMeet, selectedHeadset } = useStore();
   const [resA, setResA] = useState<Result>({ status: 'idle' });
   const [resB, setResB] = useState<Result>({ status: 'idle' });
   const [skipped, setSkipped] = useState(false);
 
-  // Backend wired in Task 12. For now: stub that "passes" instantly so the UI flow can be exercised.
   const runA = async (): Promise<void> => {
     setResA({ status: 'running' });
-    // TODO(task-12): replace with real test (TestSessionRegistry + WAV injection + loopback validation)
-    await new Promise((r) => setTimeout(r, 500));
-    setResA({ status: 'passed' });
+    try {
+      if (!selectedToMeet) throw new Error('No selectedToMeet device');
+      const chunks = await loadTestWavAsPcmChunks('test-pt.wav');
+      await rt.testSessionStart({ direction: 'A', sourceLang: 'pt', targetLang: 'en' });
+
+      const offTestAudio = rt.onTestAudio('A', (b64) => {
+        void rt.testRoutePlayback({ direction: 'A', deviceId: selectedToMeet, base64: b64 });
+      });
+
+      for (const chunk of chunks) {
+        await rt.testSessionInject({ direction: 'A', base64: chunk });
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await rt.testSessionInputDone({ direction: 'A' });
+
+      const inv = await rt.listDevices();
+      const cableARecording = inv.cableA?.recording?.deviceId;
+      if (!cableARecording) throw new Error('CABLE-A recording side not detected');
+
+      const result = await rt.loopbackStart({
+        deviceId: cableARecording,
+        thresholdRms: 0.01,
+        timeoutMs: 10000,
+      });
+
+      offTestAudio();
+      await rt.testSessionStop({ direction: 'A' });
+
+      if (result.detected) setResA({ status: 'passed' });
+      else setResA({ status: 'failed', reason: 'No audio detected on CABLE-A Output' });
+    } catch (e) {
+      setResA({ status: 'failed', reason: (e as Error).message });
+    }
   };
+
   const runB = async (): Promise<void> => {
     setResB({ status: 'running' });
-    // TODO(task-12): replace with real test
-    await new Promise((r) => setTimeout(r, 500));
-    setResB({ status: 'passed' });
+    try {
+      if (!selectedHeadset) throw new Error('No selectedHeadset device');
+      const chunks = await loadTestWavAsPcmChunks('test-en.wav');
+      await rt.testSessionStart({ direction: 'B', sourceLang: 'en', targetLang: 'pt' });
+
+      const offTestAudio = rt.onTestAudio('B', (b64) => {
+        void rt.testRoutePlayback({ direction: 'B', deviceId: selectedHeadset, base64: b64 });
+      });
+
+      for (const chunk of chunks) {
+        await rt.testSessionInject({ direction: 'B', base64: chunk });
+        await new Promise((r) => setTimeout(r, 50));
+      }
+      await rt.testSessionInputDone({ direction: 'B' });
+
+      // Wait ~5s for translation to play.
+      await new Promise((r) => setTimeout(r, 5000));
+
+      offTestAudio();
+      await rt.testSessionStop({ direction: 'B' });
+
+      // window.confirm is the simplest path; UX-bad but plan-prescribed.
+      // TODO(m5): replace with a custom in-wizard confirmation modal.
+      const heard = window.confirm('Did you hear a phrase in Portuguese in your headphones?');
+      if (heard) setResB({ status: 'passed' });
+      else setResB({ status: 'failed', reason: 'User reported no audio heard' });
+    } catch (e) {
+      setResB({ status: 'failed', reason: (e as Error).message });
+    }
   };
 
   const back = (): void => {

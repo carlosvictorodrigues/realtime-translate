@@ -7,6 +7,8 @@ import { registerIpcHandlers } from './ipc/handlers';
 import { type WebSocketLike, type WebSocketFactory } from './translate/openaiSession';
 import { type OffscreenController } from './translate/audioPipeline';
 import { SessionManager } from './translate/sessionManager';
+import { TestSessionRegistry } from './translate/testSession';
+import { runLoopback } from './audio/loopbackCapture';
 import { detectVirtualCables, type DeviceInfo } from './audio/deviceDetector';
 import { createLogger, LogLevel } from './util/logger';
 import { JsonlSink } from './util/jsonlSink';
@@ -343,6 +345,27 @@ app.whenReady().then(async () => {
   // eslint-disable-next-line prefer-const
   let manager: SessionManager | undefined;
 
+  // Test Translation (M4 Phase E). Each direction is an independent OpenAISession
+  // started with its own source/target language pair; translated audio is forwarded
+  // to setupView (via dynamic `test:audio:${direction}` channel) so the renderer can
+  // route it to the desired playback device. Playback streams are reused across
+  // chunks of a single test run and torn down on stop.
+  const testSessions = new TestSessionRegistry();
+  const testPlaybacks = new Map<string, boolean>();
+
+  const runTestPlayback = async (
+    direction: Direction,
+    deviceId: string,
+    base64: string,
+  ): Promise<void> => {
+    const streamId = `test-${direction}`;
+    if (!testPlaybacks.get(streamId)) {
+      await offscreenBridge.startPlayback(streamId, deviceId);
+      testPlaybacks.set(streamId, true);
+    }
+    offscreenBridge.pushPlayback(streamId, base64);
+  };
+
   registerIpcHandlers({
     configStore,
     prefsStore,
@@ -417,6 +440,31 @@ app.whenReady().then(async () => {
     },
     quitApp: () => app.quit(),
     resolveLocale: () => resolveLocale(prefsStore),
+    testSessionStart: ({ direction, sourceLang, targetLang }) => {
+      const apiKey = configStore.getApiKey();
+      if (!apiKey) throw new Error('No API key');
+      testSessions.start(direction, sourceLang, targetLang, {
+        apiKey,
+        wsFactory,
+        onAudio: (b64) => {
+          if (setupView && !setupView.isDestroyed()) {
+            setupView.webContents.send(`test:audio:${direction}`, b64);
+          }
+        },
+      });
+    },
+    testSessionInject: ({ direction, base64 }) => testSessions.inject(direction, base64),
+    testSessionInputDone: ({ direction }) => testSessions.inputDone(direction),
+    testSessionStop: ({ direction }) => {
+      testSessions.stop(direction);
+      const streamId = `test-${direction}`;
+      offscreenBridge.stopStream(streamId);
+      testPlaybacks.delete(streamId);
+    },
+    runLoopback: (deviceId, thresholdRms, timeoutMs) =>
+      runLoopback(offscreenWindow!, deviceId, thresholdRms, timeoutMs),
+    runTestPlayback: (direction, deviceId, base64) =>
+      runTestPlayback(direction, deviceId, base64),
   });
 });
 

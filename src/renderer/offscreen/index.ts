@@ -15,6 +15,11 @@ declare global {
       pushPlayback(streamId: string, base64: string): void;
       stopStream(streamId: string): void;
       stopAll(): void;
+      runLoopback(
+        deviceId: string,
+        thresholdRms: number,
+        timeoutMs: number,
+      ): Promise<{ detected: boolean }>;
     };
     offscreenBridge?: {
       onPushPlayback(handler: (streamId: string, base64: string) => void): void;
@@ -72,6 +77,43 @@ window.offscreen = {
     }
     captures.clear();
     playbacks.clear();
+  },
+  async runLoopback(deviceId, thresholdRms, timeoutMs) {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        deviceId: { exact: deviceId },
+        sampleRate: 24000,
+        channelCount: 1,
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+      },
+    });
+    const ctx = new AudioContext({ sampleRate: 24000 });
+    const source = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    const startedAt = Date.now();
+    let detected = false;
+    while (Date.now() - startedAt < timeoutMs) {
+      analyser.getFloatTimeDomainData(buf);
+      let sumSq = 0;
+      for (let i = 0; i < buf.length; i++) {
+        const v = buf[i] ?? 0; // noUncheckedIndexedAccess guard
+        sumSq += v * v;
+      }
+      const rms = Math.sqrt(sumSq / buf.length);
+      if (rms > thresholdRms) {
+        detected = true;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    stream.getTracks().forEach((t) => t.stop());
+    void ctx.close();
+    return { detected };
   },
 };
 

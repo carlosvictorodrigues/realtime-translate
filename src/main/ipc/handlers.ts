@@ -3,8 +3,9 @@ import { IPC } from '../../shared/events';
 import type { IpcInvokeMap } from './channels';
 import { ConfigStore } from '../config/configStore';
 import { UserPrefsStore } from '../config/userPrefsStore';
-import type { BidirectionalArgs, DeviceInventory } from '../../shared/types';
+import type { BidirectionalArgs, DeviceInventory, Direction } from '../../shared/types';
 import type { Locale } from '../../shared/i18n';
+import type { LanguageCode } from '../../shared/languages';
 
 interface HandlerDeps {
   configStore: ConfigStore;
@@ -25,6 +26,21 @@ interface HandlerDeps {
   showBarMenu: (sender: Electron.WebContents) => void;
   quitApp: () => void;
   resolveLocale: () => Locale;
+  // Test Translation (M4 Phase E) — see TestSessionRegistry + loopbackCapture.
+  testSessionStart: (args: {
+    direction: Direction;
+    sourceLang: LanguageCode;
+    targetLang: LanguageCode;
+  }) => void;
+  testSessionInject: (args: { direction: Direction; base64: string }) => void;
+  testSessionInputDone: (args: { direction: Direction }) => void;
+  testSessionStop: (args: { direction: Direction }) => void;
+  runLoopback: (
+    deviceId: string,
+    thresholdRms: number,
+    timeoutMs: number,
+  ) => Promise<{ detected: boolean }>;
+  runTestPlayback: (direction: Direction, deviceId: string, base64: string) => Promise<void>;
 }
 
 type InvokeHandler<K extends keyof IpcInvokeMap> = (
@@ -59,4 +75,15 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.ShowBarMenu, (e) => deps.showBarMenu(e.sender));
   handle(IPC.AppQuit, () => deps.quitApp());
   handle(IPC.ResolveLocale, () => deps.resolveLocale());
+
+  handle(IPC.TestSessionStart, (_e, args) => deps.testSessionStart(args));
+  handle(IPC.TestSessionInject, (_e, args) => deps.testSessionInject(args));
+  handle(IPC.TestSessionInputDone, (_e, args) => deps.testSessionInputDone(args));
+  handle(IPC.TestSessionStop, (_e, args) => deps.testSessionStop(args));
+  handle(IPC.LoopbackStart, (_e, args) =>
+    deps.runLoopback(args.deviceId, args.thresholdRms, args.timeoutMs),
+  );
+  handle(IPC.TestRoutePlayback, (_e, args) =>
+    deps.runTestPlayback(args.direction, args.deviceId, args.base64),
+  );
 }
