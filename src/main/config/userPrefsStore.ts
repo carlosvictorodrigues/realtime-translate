@@ -27,6 +27,7 @@ export interface UserPrefs {
   widgetPosition?: WidgetPosition;
   languages?: Languages;
   devices?: DevicePrefs;
+  uiLanguage?: 'pt-BR' | 'en-US'; // NEW — setter comes in Task 3
 }
 
 export interface UserPrefsStoreDeps {

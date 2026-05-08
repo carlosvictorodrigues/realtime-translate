@@ -1,0 +1,32 @@
+{
+  "common": {
+    "next": "Avançar →",
+    "back": "← Voltar",
+    "save": "Salvar",
+    "saveAndBack": "Salvar e voltar",
+    "cancel": "Cancelar",
+    "close": "Fechar",
+    "yes": "Sim, ouvi",
+    "no": "Não ouvi nada",
+    "skip": "Pular",
+    "quit": "Sair do app"
+  },
+  "bar": {
+    "tooltip": {
+      "play": "Iniciar tradução",
+      "pause": "Pausar tradução",
+      "retry": "Tentar novamente",
+      "settings": "Configurações"
+    },
+    "status": {
+      "connecting": "Conectando…",
+      "reconnecting": "Reconectando",
+      "attempt": "tentativa {{n}}",
+      "errorPrefix": "Erro:"
+    }
+  },
+  "menu": {
+    "settings": "Configurações",
+    "quit": "Sair"
+  }
+}

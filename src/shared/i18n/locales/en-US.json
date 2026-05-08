@@ -1,0 +1,32 @@
+{
+  "common": {
+    "next": "Next →",
+    "back": "← Back",
+    "save": "Save",
+    "saveAndBack": "Save and go back",
+    "cancel": "Cancel",
+    "close": "Close",
+    "yes": "Yes, I heard it",
+    "no": "I didn't hear anything",
+    "skip": "Skip",
+    "quit": "Quit app"
+  },
+  "bar": {
+    "tooltip": {
+      "play": "Start translation",
+      "pause": "Pause translation",
+      "retry": "Try again",
+      "settings": "Settings"
+    },
+    "status": {
+      "connecting": "Connecting…",
+      "reconnecting": "Reconnecting",
+      "attempt": "attempt {{n}}",
+      "errorPrefix": "Error:"
+    }
+  },
+  "menu": {
+    "settings": "Settings",
+    "quit": "Quit"
+  }
+}
