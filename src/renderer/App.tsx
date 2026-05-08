@@ -1,6 +1,6 @@
 import type { JSX } from 'react';
-import { M1TestRig } from './views/M1TestRig';
+import { BidirectionalTestRig } from './views/BidirectionalTestRig';
 
 export function App(): JSX.Element {
-  return <M1TestRig />;
+  return <BidirectionalTestRig />;
 }
