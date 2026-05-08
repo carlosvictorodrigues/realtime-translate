@@ -61,4 +61,32 @@ describe('detectVirtualCables', () => {
     expect(real.inputs.map((d) => d.label)).toEqual(['Mic (USB)']);
     expect(real.outputs.map((d) => d.label)).toEqual(['Speakers']);
   });
+
+  it('falls back to basic VB-CABLE (no A/B suffix) for cableA', () => {
+    const devices: DeviceInfo[] = [
+      dev('audiooutput', 'CABLE Input (VB-Audio Virtual Cable)'),
+      dev('audioinput', 'CABLE Output (VB-Audio Virtual Cable)'),
+      dev('audiooutput', 'Speakers (Realtek)'),
+      dev('audioinput', 'Mic (USB)'),
+    ];
+    const result = detectVirtualCables(devices);
+    expect(result.cableA?.playback?.label).toBe('CABLE Input (VB-Audio Virtual Cable)');
+    expect(result.cableA?.recording?.label).toBe('CABLE Output (VB-Audio Virtual Cable)');
+    expect(result.cableB).toBeUndefined();
+    // Basic CABLE should also be filtered out of real devices.
+    expect(result.realDevices.outputs.map((d) => d.label)).toEqual(['Speakers (Realtek)']);
+    expect(result.realDevices.inputs.map((d) => d.label)).toEqual(['Mic (USB)']);
+  });
+
+  it('prefers explicit CABLE-A over basic CABLE when both present', () => {
+    const devices: DeviceInfo[] = [
+      dev('audiooutput', 'CABLE-A Input (VB-Audio Cable A)'),
+      dev('audioinput', 'CABLE-A Output (VB-Audio Cable A)'),
+      dev('audiooutput', 'CABLE Input (VB-Audio Virtual Cable)'),
+      dev('audioinput', 'CABLE Output (VB-Audio Virtual Cable)'),
+    ];
+    const result = detectVirtualCables(devices);
+    expect(result.cableA?.playback?.label).toBe('CABLE-A Input (VB-Audio Cable A)');
+    expect(result.cableA?.recording?.label).toBe('CABLE-A Output (VB-Audio Cable A)');
+  });
 });
