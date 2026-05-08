@@ -323,7 +323,7 @@ sequenceDiagram
     autonumber
     actor You
     participant Mic as 🎤 Mic
-    participant Off as Offscreen Renderer
+    participant OS as Offscreen Renderer
     participant Main as Main Process
     participant OAI as ☁️ OpenAI
     participant CableA as ⚡ CABLE-A
@@ -331,40 +331,73 @@ sequenceDiagram
     actor Contact
 
     You->>Mic: speaks PT
-    Mic->>Off: PCM16 (24kHz)
-    Off->>Main: pushAudio(b64)
+    Mic->>OS: PCM16 24kHz
+    OS->>Main: pushAudio b64
     Main->>OAI: input_audio_buffer.append
     OAI->>OAI: VAD detects end of speech
     OAI->>OAI: translates → EN audio
-    OAI->>Main: output_audio.delta (b64)
-    Main->>Off: pushPlayback(streamId, b64)
-    Off->>CableA: AudioContext setSinkId(CABLE-A Input)
+    OAI->>Main: output_audio.delta b64
+    Main->>OS: pushPlayback streamId b64
+    OS->>CableA: AudioContext setSinkId CABLE-A Input
     CableA->>Meet: Meet's mic = CABLE-A Output
     Meet->>Contact: streamed EN audio
 
-    Note over OAI,Main: Round-trip latency: ~200-500ms<br/>(OpenAI processing dominates)
+    Note over OAI,Main: Round-trip latency ~200-500ms<br/>OpenAI processing dominates
 ```
 
 The mirror flow runs simultaneously in the other direction (your contact → CABLE-B → app → headset) on a second OpenAI session. The two sessions are independent — you can pause one without affecting the other, and a network blip on one side doesn't kill the other.
 
 ### Per-direction state machine
 
+Each translation direction (A and B) tracks its own session state independently. The bar's aggregate state is the "max severity" of the two: **Active** wins over **Connecting**, **Error** wins over everything.
+
+**Happy path (successful session lifecycle):**
+
 ```mermaid
-stateDiagram-v2
-    [*] --> Idle
-    Idle --> Connecting: start()
-    Connecting --> Active: WS open + session.created
-    Active --> Reconnecting: WS unexpected close
-    Active --> Idle: stop()
-    Reconnecting --> Active: backoff retry succeeds
-    Reconnecting --> Error: max attempts exhausted
-    Reconnecting --> Idle: stop()
-    Error --> Connecting: retry()
-    Error --> Idle: stop()
-    Active --> Error: server-side fatal
+flowchart LR
+    Idle1["Idle"] -->|"start()"| Connecting["Connecting"]
+    Connecting -->|"WS open + session.created"| Active["Active"]
+    Active -->|"stop()"| Idle2["Idle"]
+
+    style Idle1 fill:#71717a,color:#fff
+    style Idle2 fill:#71717a,color:#fff
+    style Connecting fill:#f59e0b,color:#000
+    style Active fill:#4ade80,color:#000
 ```
 
-The aggregated bar state is the "max severity" of both per-direction states (Active wins over Connecting, Error wins over everything).
+**Reconnect path (transient network loss):**
+
+```mermaid
+flowchart LR
+    Active["Active"] -->|"WS unexpected close"| Reconnecting["Reconnecting"]
+    Reconnecting -->|"backoff retry succeeds"| Active2["Active"]
+    Reconnecting -->|"max attempts exhausted"| Error["Error"]
+    Error -->|"retry()"| Connecting["Connecting"]
+    Connecting -->|"WS open"| Active3["Active"]
+
+    style Active fill:#4ade80,color:#000
+    style Active2 fill:#4ade80,color:#000
+    style Active3 fill:#4ade80,color:#000
+    style Reconnecting fill:#f59e0b,color:#000
+    style Error fill:#f87171,color:#fff
+    style Connecting fill:#f59e0b,color:#000
+```
+
+**Fatal path (server rejected, e.g., bad API key):**
+
+```mermaid
+flowchart LR
+    Active["Active"] -->|"server-side fatal"| Error["Error"]
+    Error -->|"retry()"| Connecting["Connecting"]
+    Error -->|"stop()"| Idle["Idle"]
+
+    style Active fill:#4ade80,color:#000
+    style Error fill:#f87171,color:#fff
+    style Connecting fill:#f59e0b,color:#000
+    style Idle fill:#71717a,color:#fff
+```
+
+`stop()` works from any state and always returns to **Idle** (omitted from the diagrams above for readability).
 
 ---
 
