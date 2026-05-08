@@ -29,7 +29,10 @@ export async function startCapture(
     if (ctx.sampleRate !== 24000) {
       throw new Error(`AudioContext sampleRate=${ctx.sampleRate}, expected 24000`);
     }
-    await ctx.audioWorklet.addModule(new URL('./workers/pcmEncoder.worklet.ts', import.meta.url));
+    // Vite's ?url import produces a real asset URL pointing to a built JS file.
+    // Without ?url, Vite would inline the source (TypeScript) as a data: URI.
+    const workletUrl = (await import('./workers/pcmEncoder.worklet.js?url')).default;
+    await ctx.audioWorklet.addModule(workletUrl);
     const source = ctx.createMediaStreamSource(stream);
     const node = new AudioWorkletNode(ctx, 'pcm-encoder');
     node.port.onmessage = (e: MessageEvent<Float32Array>) => {
