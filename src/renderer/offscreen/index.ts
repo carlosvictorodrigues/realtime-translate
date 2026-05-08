@@ -54,8 +54,22 @@ window.offscreen = {
     playbacks.delete(streamId);
   },
   stopAll() {
-    for (const c of captures.values()) c.stop();
-    for (const p of playbacks.values()) p.stop();
+    // Best-effort teardown — swallow per-handle errors so one stuck handle
+    // doesn't leak the rest. App-shutdown path: defensive cleanup matters most here.
+    for (const c of captures.values()) {
+      try {
+        c.stop();
+      } catch {
+        /* swallow */
+      }
+    }
+    for (const p of playbacks.values()) {
+      try {
+        p.stop();
+      } catch {
+        /* swallow */
+      }
+    }
     captures.clear();
     playbacks.clear();
   },
