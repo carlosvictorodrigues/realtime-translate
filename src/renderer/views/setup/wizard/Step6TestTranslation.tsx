@@ -46,12 +46,20 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
 
   const runA = async (): Promise<void> => {
     setResA({ status: 'running' });
+    // 'No selectedToMeet device' stays English: "shouldn't happen" — wizard gates step 4
+    // on all 4 devices selected, so this branch only fires if state was somehow cleared.
+    if (!selectedToMeet) {
+      setResA({ status: 'failed', reason: 'No selectedToMeet device' });
+      return;
+    }
+    let offTestAudio: (() => void) | undefined;
+    let started = false;
     try {
-      if (!selectedToMeet) throw new Error('No selectedToMeet device');
       const chunks = await loadTestWavAsPcmChunks('test-pt.wav');
       await rt.testSessionStart({ direction: 'A', sourceLang: 'pt', targetLang: 'en' });
+      started = true;
 
-      const offTestAudio = rt.onTestAudio('A', (b64) => {
+      offTestAudio = rt.onTestAudio('A', (b64) => {
         void rt.testRoutePlayback({ direction: 'A', deviceId: selectedToMeet, base64: b64 });
       });
 
@@ -63,7 +71,7 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
 
       const inv = await rt.listDevices();
       const cableARecording = inv.cableA?.recording?.deviceId;
-      if (!cableARecording) throw new Error('CABLE-A recording side not detected');
+      if (!cableARecording) throw new Error(t('setup.test.cableANotDetected'));
 
       const result = await rt.loopbackStart({
         deviceId: cableARecording,
@@ -71,24 +79,34 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
         timeoutMs: 10000,
       });
 
-      offTestAudio();
-      await rt.testSessionStop({ direction: 'A' });
-
       if (result.detected) setResA({ status: 'passed' });
-      else setResA({ status: 'failed', reason: 'No audio detected on CABLE-A Output' });
+      else setResA({ status: 'failed', reason: t('setup.test.noAudioOnCableA') });
     } catch (e) {
       setResA({ status: 'failed', reason: (e as Error).message });
+    } finally {
+      // Always release the listener and stop the session — otherwise rapid retry
+      // stacks listeners (every chunk gets routed twice+) and orphans the WS.
+      offTestAudio?.();
+      if (started) {
+        await rt.testSessionStop({ direction: 'A' }).catch(() => undefined);
+      }
     }
   };
 
   const runB = async (): Promise<void> => {
     setResB({ status: 'running' });
+    if (!selectedHeadset) {
+      setResB({ status: 'failed', reason: 'No selectedHeadset device' });
+      return;
+    }
+    let offTestAudio: (() => void) | undefined;
+    let started = false;
     try {
-      if (!selectedHeadset) throw new Error('No selectedHeadset device');
       const chunks = await loadTestWavAsPcmChunks('test-en.wav');
       await rt.testSessionStart({ direction: 'B', sourceLang: 'en', targetLang: 'pt' });
+      started = true;
 
-      const offTestAudio = rt.onTestAudio('B', (b64) => {
+      offTestAudio = rt.onTestAudio('B', (b64) => {
         void rt.testRoutePlayback({ direction: 'B', deviceId: selectedHeadset, base64: b64 });
       });
 
@@ -101,16 +119,18 @@ export function Step6TestTranslation({ mode }: { mode?: 'edit' | undefined }): J
       // Wait ~5s for translation to play.
       await new Promise((r) => setTimeout(r, 5000));
 
-      offTestAudio();
-      await rt.testSessionStop({ direction: 'B' });
-
       // window.confirm is the simplest path; UX-bad but plan-prescribed.
       // TODO(m5): replace with a custom in-wizard confirmation modal.
-      const heard = window.confirm('Did you hear a phrase in Portuguese in your headphones?');
+      const heard = window.confirm(t('setup.test.confirmHeardPt'));
       if (heard) setResB({ status: 'passed' });
-      else setResB({ status: 'failed', reason: 'User reported no audio heard' });
+      else setResB({ status: 'failed', reason: t('setup.test.userNoAudio') });
     } catch (e) {
       setResB({ status: 'failed', reason: (e as Error).message });
+    } finally {
+      offTestAudio?.();
+      if (started) {
+        await rt.testSessionStop({ direction: 'B' }).catch(() => undefined);
+      }
     }
   };
 

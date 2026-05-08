@@ -112,7 +112,11 @@
       "failed": "✗ Failed: {{reason}}",
       "skipWarning": "Translation may fail on the first call if something is misconfigured.",
       "skip": "Skip and open the bar",
-      "finish": "Finish setup →"
+      "finish": "Finish setup →",
+      "cableANotDetected": "CABLE-A recording side not detected",
+      "noAudioOnCableA": "No audio detected on CABLE-A Output",
+      "confirmHeardPt": "Did you hear a phrase in Portuguese in your headphones?",
+      "userNoAudio": "Audio not confirmed by user"
     }
   }
 }

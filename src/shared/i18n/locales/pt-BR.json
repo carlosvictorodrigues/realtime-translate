@@ -112,7 +112,11 @@
       "failed": "✗ Falhou: {{reason}}",
       "skipWarning": "Tradução pode falhar na primeira chamada se algo tiver mal configurado.",
       "skip": "Pular e abrir barra",
-      "finish": "Concluir setup →"
+      "finish": "Concluir setup →",
+      "cableANotDetected": "Lado de captura do CABLE-A não detectado",
+      "noAudioOnCableA": "Nenhum áudio detectado no CABLE-A Output",
+      "confirmHeardPt": "Você ouviu uma frase em português no seu fone?",
+      "userNoAudio": "Áudio não confirmado pelo usuário"
     }
   }
 }
