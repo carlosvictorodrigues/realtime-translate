@@ -72,8 +72,11 @@ describe('OpenAISession', () => {
     const config = JSON.parse(ws.sent[0]!);
     expect(config.type).toBe('session.update');
     expect(config.session.audio.output.language).toBe('en');
-    expect(config.session.input_audio_format).toBe('pcm16');
-    expect(config.session.output_audio_format).toBe('pcm16');
+    // The /v1/realtime/translations endpoint does NOT accept input_audio_format
+    // or output_audio_format — those belong to the conversational /v1/realtime
+    // endpoint. Translation format is implicitly PCM16 24kHz mono.
+    expect(config.session.input_audio_format).toBeUndefined();
+    expect(config.session.output_audio_format).toBeUndefined();
   });
 
   it('emits state transitions: connecting -> active', () => {

@@ -196,8 +196,8 @@ Após `WebSocket open`, app envia:
 ws.send({
   type: "session.update",
   session: {
-    input_audio_format: "pcm16",
-    output_audio_format: "pcm16",
+    // No input_audio_format/output_audio_format — translation endpoint
+    // does not accept those. Format is implicit PCM16 24kHz mono.
     audio: { output: { language: "en", voice: "ash" } }
   }
 });

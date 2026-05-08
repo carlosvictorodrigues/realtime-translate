@@ -117,11 +117,13 @@ export class OpenAISession {
     // Successful (re)connect — reset backoff so next failure starts fresh.
     this.backoff.reset();
     this.attemptCount = 0;
+    // The /v1/realtime/translations endpoint accepts only audio.output.language
+    // (and optionally voice). Format is implicitly PCM16 24kHz mono per OpenAI docs.
+    // Do NOT send input_audio_format / output_audio_format — those belong to the
+    // /v1/realtime conversational endpoint and cause "Unknown parameter" errors here.
     this.sendRaw({
       type: 'session.update',
       session: {
-        input_audio_format: 'pcm16',
-        output_audio_format: 'pcm16',
         audio: {
           output: {
             language: this.cfg.targetLang,
