@@ -244,7 +244,7 @@ async function createWindows(configStore: ConfigStore, prefsStore: UserPrefsStor
   }
 }
 
-async function createSetupView(): Promise<BrowserWindow> {
+async function createSetupView(initialHash = ''): Promise<BrowserWindow> {
   if (setupView && !setupView.isDestroyed()) {
     setupView.focus();
     return setupView;
@@ -262,7 +262,7 @@ async function createSetupView(): Promise<BrowserWindow> {
   setupView.on('closed', () => {
     setupView = null;
   });
-  await setupView.loadURL(SETUP_VIEW_URL);
+  await setupView.loadURL(`${SETUP_VIEW_URL}${initialHash}`);
   return setupView;
 }
 
@@ -422,7 +422,9 @@ app.whenReady().then(async () => {
     },
     listDevices: () => buildDeviceInventory(offscreenWindow!),
     openSetupView: async () => {
-      await createSetupView();
+      // Post-setup gear opens the review screen; pre-setup callers don't reach
+      // this IPC (the wizard auto-opens at startup via createWindows).
+      await createSetupView('#/review');
     },
     onSetupComplete: async () => {
       await createFloatingWidget(prefsStore);
@@ -432,7 +434,7 @@ app.whenReady().then(async () => {
       const win = BrowserWindow.fromWebContents(sender);
       if (!win) return;
       const menu = Menu.buildFromTemplate([
-        { label: 'Configurações', click: () => { void createSetupView(); } },
+        { label: 'Configurações', click: () => { void createSetupView('#/review'); } },
         { type: 'separator' },
         { label: 'Sair', accelerator: 'Alt+F4', click: () => app.quit() },
       ]);
