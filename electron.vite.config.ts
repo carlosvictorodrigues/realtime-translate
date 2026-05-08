@@ -35,6 +35,7 @@ export default defineConfig({
   },
   renderer: {
     root: resolve('src/renderer'),
+    publicDir: resolve('assets'),
     plugins: [react()],
     build: {
       outDir: 'out/renderer',

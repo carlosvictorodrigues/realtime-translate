@@ -85,6 +85,17 @@
       "languagesLabel": "Idiomas (você ↔ interlocutor)",
       "recommended": "(recomendado)",
       "selectPlaceholder": "— selecione —"
+    },
+    "meet": {
+      "label": "Configurar Meet",
+      "heading": "Configurar o Google Meet",
+      "sub": "Esse passo é manual — não conseguimos verificar automaticamente, mas é rápido.",
+      "alreadyConfigured": "Já configurei",
+      "step1": "Abra qualquer reunião no Meet",
+      "step2": "Clique nos 3 pontos no canto inferior direito → Configurações",
+      "step3": "Vá pra aba 'Áudio'",
+      "step4": "Microfone: selecione 'CABLE-A Output (VB-Audio Cable A)'",
+      "step5": "Alto-falantes: selecione 'CABLE-B Input (VB-Audio Cable B)' (NÃO o '16ch')"
     }
   }
 }
