@@ -23,13 +23,6 @@ export interface DeviceInventory {
   cableB?: { playback?: DeviceSummary; recording?: DeviceSummary };
 }
 
-export interface StartTranslationArgs {
-  sourceLang: LanguageCode;
-  targetLang: LanguageCode;
-  micDeviceId: string;
-  outputDeviceId: string; // M1: target playback (cable A or test speaker)
-}
-
 export type Direction = 'A' | 'B';
 
 /** Per-direction state for bidirectional translation. */
@@ -51,8 +44,8 @@ export interface DirectionalState {
  * - headsetDeviceId: real speakers/headphones, Direction B output (audiooutput)
  */
 export interface BidirectionalArgs {
-  sourceLang: import('./languages').LanguageCode;
-  targetLang: import('./languages').LanguageCode;
+  sourceLang: LanguageCode;
+  targetLang: LanguageCode;
   micDeviceId: string;
   toMeetDeviceId: string;
   fromMeetDeviceId: string;
