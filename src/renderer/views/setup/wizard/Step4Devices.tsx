@@ -40,6 +40,24 @@ export function Step4Devices({ mode }: { mode?: 'edit' | undefined }): JSX.Eleme
   const placeholder = t('setup.devices.selectPlaceholder');
   const recommended = t('setup.devices.recommended');
 
+  // deviceDetector strips virtual cables from inputs/outputs and exposes them
+  // separately on cableA/cableB. Merge the cable back into the option list so
+  // it's actually selectable in the dropdown — otherwise recommendedId points
+  // at a deviceId that doesn't exist in `options` and the recommended row
+  // never renders.
+  const toMeetOptions = (() => {
+    const out = devices?.outputs ?? [];
+    const cable = devices?.cableA?.playback;
+    if (!cable || out.some((o) => o.deviceId === cable.deviceId)) return out;
+    return [cable, ...out];
+  })();
+  const fromMeetOptions = (() => {
+    const ins = devices?.inputs ?? [];
+    const cable = devices?.cableB?.recording;
+    if (!cable || ins.some((o) => o.deviceId === cable.deviceId)) return ins;
+    return [cable, ...ins];
+  })();
+
   return (
     <>
       <div className="setup-step-meta">{t('setup.stepLabel', { n: 4, total: 6 })} — {t('setup.devices.label')}</div>
@@ -49,6 +67,7 @@ export function Step4Devices({ mode }: { mode?: 'edit' | undefined }): JSX.Eleme
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
         <DeviceField
           label={t('setup.devices.mic')}
+          hint={t('setup.devices.micHint')}
           value={selectedMic}
           onChange={setSelectedMic}
           options={devices?.inputs ?? []}
@@ -56,24 +75,27 @@ export function Step4Devices({ mode }: { mode?: 'edit' | undefined }): JSX.Eleme
         />
         <DeviceField
           label={t('setup.devices.toMeet')}
+          hint={t('setup.devices.toMeetHint')}
           value={selectedToMeet}
           onChange={setSelectedToMeet}
-          options={devices?.outputs ?? []}
+          options={toMeetOptions}
           placeholder={placeholder}
           recommendedId={devices?.cableA?.playback?.deviceId}
           recommendedLabel={recommended}
         />
         <DeviceField
           label={t('setup.devices.fromMeet')}
+          hint={t('setup.devices.fromMeetHint')}
           value={selectedFromMeet}
           onChange={setSelectedFromMeet}
-          options={devices?.inputs ?? []}
+          options={fromMeetOptions}
           placeholder={placeholder}
           recommendedId={devices?.cableB?.recording?.deviceId}
           recommendedLabel={recommended}
         />
         <DeviceField
           label={t('setup.devices.headset')}
+          hint={t('setup.devices.headsetHint')}
           value={selectedHeadset}
           onChange={setSelectedHeadset}
           options={devices?.outputs ?? []}
@@ -81,7 +103,7 @@ export function Step4Devices({ mode }: { mode?: 'edit' | undefined }): JSX.Eleme
         />
 
         <div>
-          <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>
+          <label className="setup-field-label">
             {t('setup.devices.languagesLabel')}
           </label>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -107,9 +129,10 @@ export function Step4Devices({ mode }: { mode?: 'edit' | undefined }): JSX.Eleme
 }
 
 function DeviceField({
-  label, value, onChange, options, placeholder, recommendedId, recommendedLabel,
+  label, hint, value, onChange, options, placeholder, recommendedId, recommendedLabel,
 }: {
   label: string;
+  hint?: string;
   value: string | undefined;
   onChange: (id: string) => void;
   options: { deviceId: string; label: string }[];
@@ -120,7 +143,8 @@ function DeviceField({
   const recommendedOption = recommendedId ? options.find((o) => o.deviceId === recommendedId) : undefined;
   return (
     <div>
-      <label style={{ fontSize: 12, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 }}>{label}</label>
+      <label className="setup-field-label">{label}</label>
+      {hint && <div className="setup-field-hint">{hint}</div>}
       <select className="setup-input" value={value ?? ''} onChange={(e): void => onChange(e.target.value)}>
         <option value="">{placeholder}</option>
         {recommendedOption && (

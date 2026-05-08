@@ -79,9 +79,13 @@
       "heading": "Seus dispositivos de áudio",
       "sub": "Selecione qual mic e fone você usa.",
       "mic": "Microfone (sua voz)",
+      "micHint": "Seu microfone físico — onde sua voz é capturada antes de traduzir.",
       "toMeet": "Saída pro Meet",
+      "toMeetHint": "Pra onde o app envia o áudio traduzido. Deve ser CABLE-A (recomendado abaixo).",
       "fromMeet": "Captura do Meet",
+      "fromMeetHint": "De onde o app captura a fala do interlocutor (que vem do Meet). Deve ser CABLE-B (recomendado abaixo).",
       "headset": "Fone (você ouve a tradução)",
+      "headsetHint": "Onde você ouve a tradução do interlocutor. Use um fone separado se possível — evita acoplamento com o microfone.",
       "languagesLabel": "Idiomas (você ↔ interlocutor)",
       "recommended": "(recomendado)",
       "selectPlaceholder": "— selecione —"

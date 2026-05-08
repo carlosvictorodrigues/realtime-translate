@@ -79,9 +79,13 @@
       "heading": "Your audio devices",
       "sub": "Select which mic and headset you use.",
       "mic": "Microphone (your voice)",
+      "micHint": "Your physical microphone — where your voice is captured before translating.",
       "toMeet": "Output to Meet",
+      "toMeetHint": "Where the app sends translated audio. Should be CABLE-A (recommended below).",
       "fromMeet": "Capture from Meet",
+      "fromMeetHint": "Where the app captures the contact's voice (coming from Meet). Should be CABLE-B (recommended below).",
       "headset": "Headset (you hear the translation)",
+      "headsetHint": "Where you hear the contact's translation. Use a separate headset if possible — avoids feedback with the microphone.",
       "languagesLabel": "Languages (you ↔ contact)",
       "recommended": "(recommended)",
       "selectPlaceholder": "— select —"
