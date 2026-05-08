@@ -28,5 +28,21 @@
   "menu": {
     "settings": "Settings",
     "quit": "Quit"
+  },
+  "setup": {
+    "stepLabel": "Step {{n}} of {{total}}",
+    "welcome": {
+      "label": "Welcome",
+      "heading": "Let's get you set up in ~5 minutes",
+      "sub": "Realtime Translate translates your Google Meet calls in real time. Here's how it works:",
+      "diagramDirA": "You speak in Portuguese, your contact hears English",
+      "diagramDirB": "Your contact speaks English, you hear Portuguese",
+      "you": "You",
+      "them": "Contact",
+      "appTranslates": "app translates",
+      "speaks": "Speaks",
+      "hears": "Hears",
+      "start": "Begin →"
+    }
   }
 }

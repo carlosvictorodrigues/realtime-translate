@@ -147,3 +147,63 @@
 }
 .lang-dropdown__item:hover { background: rgba(255,255,255,0.06); }
 .lang-dropdown__item.active { background: rgba(110, 127, 196, 0.15); color: var(--accent); }
+
+.flow-diagram {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 12px;
+  padding: 32px 24px;
+  margin-bottom: 32px;
+}
+.flow-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.flow-row:last-of-type { margin-bottom: 0; }
+.flow-node {
+  text-align: center;
+  padding: 14px 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 8px;
+}
+.flow-node.accent {
+  background: rgba(110, 127, 196, 0.12);
+  border-color: rgba(110, 127, 196, 0.3);
+}
+.flow-node__icon { font-size: 24px; margin-bottom: 6px; }
+.flow-node__label { font-size: 11px; font-weight: 500; color: var(--text-primary); }
+.flow-node__meta { font-size: 10px; color: var(--text-tertiary); margin-top: 2px; }
+.flow-arrow {
+  text-align: center;
+  position: relative;
+  color: var(--text-tertiary);
+}
+.flow-arrow::before {
+  content: '';
+  position: absolute;
+  inset: 50% 0 auto 0;
+  height: 1px;
+  background: rgba(255,255,255,0.08);
+}
+.flow-arrow__label {
+  position: relative;
+  background: var(--bg-canvas);
+  padding: 2px 8px;
+  font-family: 'Cascadia Code', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+.flow-direction-label {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  text-align: center;
+  margin-bottom: 12px;
+  font-weight: 500;
+}

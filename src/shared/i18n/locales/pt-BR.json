@@ -28,5 +28,21 @@
   "menu": {
     "settings": "Configurações",
     "quit": "Sair"
+  },
+  "setup": {
+    "stepLabel": "Passo {{n}} de {{total}}",
+    "welcome": {
+      "label": "Boas-vindas",
+      "heading": "Vamos te configurar em ~5 minutos",
+      "sub": "O Realtime Translate traduz suas conversas no Google Meet em tempo real. Aqui está como funciona:",
+      "diagramDirA": "Você fala em português, interlocutor ouve em inglês",
+      "diagramDirB": "Interlocutor fala em inglês, você ouve em português",
+      "you": "Você",
+      "them": "Interlocutor",
+      "appTranslates": "app traduz",
+      "speaks": "Fala em",
+      "hears": "Ouve em",
+      "start": "Começar →"
+    }
   }
 }
