@@ -49,6 +49,20 @@ Pivot to `naudiodon`:
 - Update `src/offscreen/webAudioBridge.ts`: remove `setSinkId` path; either delegate playback to main via IPC or load native module via Electron sandbox-friendly path
 - Update Tasks 12-14 plan accordingly
 
-## M1 end-to-end smoke (filled later)
+## M1 end-to-end smoke
 
-(Reserved for Task 16 result.)
+**Run date:** 2026-05-07
+**Run by:** Gabriel
+**Hardware/OS:** Windows 11, VB-CABLE basic (single cable), Electron 42, USB headset
+
+**Result:** ✅ **PASS**
+
+**Procedure:** Per `docs/QA-CHECKLIST.md`. CABLE Output monitoring routed to real headset via `mmsys.cpl`. App opened to M1 Test Rig, API key encrypted via safeStorage, mic = USB headset, output = CABLE Input (auto-recommended after the basic-VB-CABLE detection fix). Clicked Start → status `idle → connecting → active`. Spoke Portuguese for ~10 seconds. Heard English translation through headset within ~2 seconds.
+
+### Issues hit during smoke (now fixed in tree)
+
+1. **Output dropdown didn't show CABLE Input.** `deviceDetector.ts` regex required A or B suffix; basic VB-CABLE has neither. Fix: added fallback `PLAIN_PLAYBACK`/`PLAIN_RECORDING` regexes that fill cableA slot when no A+B variant detected. Commit `8f4892b`.
+
+2. **`Status: error — Unknown parameter: 'session.input_audio_format'`.** The `/v1/realtime/translations` endpoint does not accept `input_audio_format`/`output_audio_format` — those belong to the conversational `/v1/realtime` endpoint. Translation format is implicit PCM16 24kHz mono per OpenAI docs. Plan-level bug carried into Task 9. Fix: removed both from `session.update` payload. Commit `c75a187`.
+
+Both fixes have new tests in the suite.
