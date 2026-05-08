@@ -126,8 +126,11 @@ function attachExternalLinkHandler(window: BrowserWindow): void {
     try {
       const parsed = validateExternalUrl(url);
       void shell.openExternal(parsed.toString());
-    } catch {
-      // Invalid URL or blocked protocol — silently deny.
+    } catch (err) {
+      // Log so a malformed URL or unexpected protocol surfaces in dev — most
+      // common cause is a renderer bug that didn't go through the typed IPC.
+      // eslint-disable-next-line no-console
+      console.warn('[external-link] blocked window-open', { url, error: (err as Error).message });
     }
     return { action: 'deny' };
   });
