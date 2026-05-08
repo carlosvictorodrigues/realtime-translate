@@ -66,3 +66,18 @@ Pivot to `naudiodon`:
 2. **`Status: error — Unknown parameter: 'session.input_audio_format'`.** The `/v1/realtime/translations` endpoint does not accept `input_audio_format`/`output_audio_format` — those belong to the conversational `/v1/realtime` endpoint. Translation format is implicit PCM16 24kHz mono per OpenAI docs. Plan-level bug carried into Task 9. Fix: removed both from `session.update` payload. Commit `c75a187`.
 
 Both fixes have new tests in the suite.
+
+## M2 end-to-end smoke (bidirectional)
+
+**Run date:** 2026-05-08
+**Run by:** Gabriel
+**Hardware/OS:** Windows 11, VB-CABLE A+B installed (alongside basic VB-CABLE from M1), Electron 42, USB headset, Google Meet on PC + Google Meet on phone as remote participant
+
+**Result:** ✅ **PASS**
+
+**Procedure:** Per `docs/QA-CHECKLIST.md` M2 section. Both directions transitioned `idle → connecting → active`. PT spoken on PC headset → phone (Meet remote) heard EN translation. EN spoken on phone → PC headset heard PT translation.
+
+### Issue hit during smoke (now documented in QA-CHECKLIST)
+
+- **Initial latency was ~30 seconds** because the M1-style "Listen to this device" monitoring was still enabled on `CABLE-A Output` (and would have been on `CABLE-B Output` similarly). The monitoring replicates the EN translation through the user's headset, the headset mic captures it, the app re-queues it for translation, and `pendingAudio` accumulates a backlog. **Fix:** disable Listen-to-this-device on both cable Outputs for M2 (M2 doesn't need the M1 debugging affordance — Direction B's translation plays directly to the user's headset via `setSinkId`). After disabling, latency returned to the expected 1-3s.
+- QA-CHECKLIST.md updated with a prominent warning so the next person doesn't repeat this.
