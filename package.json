@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "dist": "electron-vite build && electron-builder",
     "typecheck": "tsc --noEmit -p tsconfig.main.json && tsc --noEmit -p tsconfig.renderer.json",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,html}\" \"tests/**/*.ts\"",
@@ -14,6 +15,42 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test"
+  },
+  "build": {
+    "appId": "com.carlosvictorodrigues.realtime-translate",
+    "productName": "Realtime Translate",
+    "copyright": "Copyright © 2026 Carlos Victor Rodrigues",
+    "asar": true,
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      { "from": "assets/setup", "to": "setup" },
+      { "from": "assets/test", "to": "test" }
+    ],
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
+      ],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Realtime Translate"
+    },
+    "publish": [
+      { "provider": "github", "owner": "carlosvictorodrigues", "repo": "realtime-translate" }
+    ]
   },
   "license": "MIT",
   "engines": {
@@ -33,6 +70,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.5",
     "electron": "^42.0.0",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^4.0.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^10.1.8",
