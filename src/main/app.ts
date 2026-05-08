@@ -3,20 +3,15 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import WebSocket from 'ws';
 import { registerIpcHandlers } from './ipc/handlers';
-import {
-  OpenAISession,
-  type WebSocketLike,
-  type WebSocketFactory,
-} from './translate/openaiSession';
-import { AudioPipeline, type OffscreenController } from './translate/audioPipeline';
+import { type WebSocketLike, type WebSocketFactory } from './translate/openaiSession';
+import { type OffscreenController } from './translate/audioPipeline';
+import { SessionManager } from './translate/sessionManager';
 import { detectVirtualCables, type DeviceInfo } from './audio/deviceDetector';
 import { IPC } from '../shared/events';
 import type {
-  BidirectionalArgs,
   DeviceInventory,
   DeviceSummary,
   DirectionalState,
-  SessionState,
 } from '../shared/types';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
@@ -102,62 +97,6 @@ class OffscreenBridge implements OffscreenController {
   }
 }
 
-class SessionRunner {
-  private session: OpenAISession | undefined;
-  private pipeline: AudioPipeline | undefined;
-
-  constructor(
-    private readonly getApiKey: () => string | undefined,
-    private readonly offscreen: OffscreenController,
-    private readonly emitState: (s: SessionState) => void,
-    private readonly emitTranscript: (t: { kind: 'input' | 'output'; text: string }) => void,
-  ) {}
-
-  async start(args: BidirectionalArgs): Promise<void> {
-    const apiKey = this.getApiKey();
-    if (!apiKey) {
-      const message = 'No API key configured';
-      this.emitState({ kind: 'error', message });
-      throw new Error(message);
-    }
-    this.session = new OpenAISession({
-      apiKey,
-      sourceLang: args.sourceLang,
-      targetLang: args.targetLang,
-      events: {
-        onState: (s) => this.emitState(s),
-        onAudio: (b64) => this.pipeline?.handleSessionAudio(b64),
-        onTranscript: (t) => this.emitTranscript(t),
-      },
-      wsFactory,
-    });
-    // M1 interim shim: route Direction A's output to the to-Meet cable.
-    // M2's SessionManager (Task 6) properly drives both directions.
-    this.pipeline = new AudioPipeline({
-      streamId: 'A', // M1 shim — Task 6's SessionManager handles both directions
-      offscreen: this.offscreen,
-      session: this.session,
-      micDeviceId: args.micDeviceId,
-      outputDeviceId: args.toMeetDeviceId,
-    });
-    try {
-      await this.pipeline.start();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      this.emitState({ kind: 'error', message });
-      this.session = undefined;
-      this.pipeline = undefined;
-      throw err;
-    }
-  }
-
-  async stop(): Promise<void> {
-    this.pipeline?.stop();
-    this.pipeline = undefined;
-    this.session = undefined;
-  }
-}
-
 function toDeviceSummary(d: DeviceInfo): DeviceSummary {
   return { deviceId: d.deviceId, label: d.label, kind: d.kind };
 }
@@ -230,44 +169,72 @@ app.whenReady().then(async () => {
 
   const offscreenBridge = new OffscreenBridge(offscreenWindow);
 
-  // M1 interim shim: SessionRunner is single-direction, so we hard-code direction A
-  // when forwarding state/transcript. Task 6's SessionManager will emit per-direction.
-  const emitState = (s: SessionState): void => {
+  const emitDirectionalState = (s: DirectionalState): void => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      const payload: DirectionalState = { direction: 'A', state: s };
-      mainWindow.webContents.send(IPC.DirectionalStateChanged, payload);
+      mainWindow.webContents.send(IPC.DirectionalStateChanged, s);
     }
   };
-  const emitTranscript = (t: { kind: 'input' | 'output'; text: string }): void => {
+  const emitTranscript = (t: {
+    direction: 'A' | 'B';
+    kind: 'input' | 'output';
+    text: string;
+  }): void => {
     if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
-      mainWindow.webContents.send(IPC.TranscriptDelta, { direction: 'A', ...t });
+      mainWindow.webContents.send(IPC.TranscriptDelta, t);
     }
   };
 
-  // Forward declaration: handlers need runner, runner needs configStore. Use a holder pattern.
-  // The `let` is intentional — `runner` is reassigned below after `registerIpcHandlers` returns
-  // configStore. eslint can't see the closure pattern, so we suppress the warning here.
+  // Forward declaration: handlers need manager, manager needs configStore. Use a holder pattern.
+  // The `let` is intentional — `manager` is reassigned on each Start. eslint can't see the
+  // closure pattern, so we suppress.
   // eslint-disable-next-line prefer-const
-  let runner: SessionRunner | undefined;
+  let manager: SessionManager | undefined;
 
   const { configStore } = registerIpcHandlers({
     onStart: async (args) => {
-      if (!runner) throw new Error('runner not initialized');
-      await runner.start(args);
+      // If a previous session is still running (e.g., user clicked Start twice), tear it
+      // down first so we don't leak resources or double-bind IPC channels.
+      if (manager) {
+        await manager.stop();
+        manager = undefined;
+      }
+      const apiKey = configStore.getApiKey();
+      if (!apiKey) {
+        const message = 'No API key configured';
+        emitDirectionalState({ direction: 'A', state: { kind: 'error', message } });
+        emitDirectionalState({ direction: 'B', state: { kind: 'error', message } });
+        throw new Error(message);
+      }
+      manager = new SessionManager({
+        apiKey,
+        sourceLang: args.sourceLang,
+        targetLang: args.targetLang,
+        micDeviceId: args.micDeviceId,
+        toMeetDeviceId: args.toMeetDeviceId,
+        fromMeetDeviceId: args.fromMeetDeviceId,
+        headsetDeviceId: args.headsetDeviceId,
+        offscreen: offscreenBridge,
+        wsFactory,
+        onDirectionalState: emitDirectionalState,
+        onTranscript: emitTranscript,
+      });
+      try {
+        await manager.start();
+      } catch (err) {
+        // Per SessionManager contract: rejection means surviving direction may still be
+        // running. Tear it down before letting the error propagate.
+        await manager.stop();
+        manager = undefined;
+        throw err;
+      }
     },
     onStop: async () => {
-      if (!runner) return;
-      await runner.stop();
+      if (!manager) return;
+      await manager.stop();
+      manager = undefined;
     },
     listDevices: () => buildDeviceInventory(offscreenWindow!),
   });
-
-  runner = new SessionRunner(
-    () => configStore.getApiKey(),
-    offscreenBridge,
-    emitState,
-    emitTranscript,
-  );
 });
 
 app.on('window-all-closed', () => {

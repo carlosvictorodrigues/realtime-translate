@@ -9,9 +9,12 @@ import type { BidirectionalArgs, DeviceInventory } from '../../shared/types';
 
 interface HandlerDeps {
   /**
-   * Translation start. The implementation in SessionManager is responsible for emitting
-   * `{ direction, state: { kind: 'error' } }` via the DirectionalStateChanged channel
-   * BEFORE rejecting this promise. The IPC layer just rethrows.
+   * Translation start. The implementation in SessionManager (src/main/translate/sessionManager.ts)
+   * is responsible for emitting `{ direction, state: { kind: 'error' } }` via the
+   * DirectionalStateChanged channel BEFORE rejecting this promise. The IPC layer just rethrows.
+   *
+   * Per SessionManager contract: if start() rejects, the surviving direction may still be
+   * running — caller must invoke onStop() to clean up. The wiring in app.ts handles this.
    */
   onStart: (args: BidirectionalArgs) => Promise<void>;
   onStop: () => Promise<void>;
