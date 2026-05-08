@@ -40,6 +40,12 @@ const api = {
   markSetupComplete: (): Promise<IpcInvokeMap[typeof IPC.SetupComplete]['result']> =>
     ipcRenderer.invoke(IPC.SetupComplete),
 
+  showBarMenu: (): Promise<IpcInvokeMap[typeof IPC.ShowBarMenu]['result']> =>
+    ipcRenderer.invoke(IPC.ShowBarMenu),
+
+  quit: (): Promise<IpcInvokeMap[typeof IPC.AppQuit]['result']> =>
+    ipcRenderer.invoke(IPC.AppQuit),
+
   onDirectionalState: (
     cb: (s: IpcSendMap[typeof IPC.DirectionalStateChanged]) => void,
   ): (() => void) => {

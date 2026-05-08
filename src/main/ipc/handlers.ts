@@ -21,6 +21,8 @@ interface HandlerDeps {
   listDevices: () => Promise<DeviceInventory>;
   openSetupView: () => Promise<void>;
   onSetupComplete: () => Promise<void>;
+  showBarMenu: (sender: Electron.WebContents) => void;
+  quitApp: () => void;
 }
 
 type InvokeHandler<K extends keyof IpcInvokeMap> = (
@@ -51,4 +53,6 @@ export function registerIpcHandlers(deps: HandlerDeps): void {
   handle(IPC.StopTranslation, () => deps.onStop());
   handle(IPC.OpenSetupView, () => deps.openSetupView());
   handle(IPC.SetupComplete, () => deps.onSetupComplete());
+  handle(IPC.ShowBarMenu, (e) => deps.showBarMenu(e.sender));
+  handle(IPC.AppQuit, () => deps.quitApp());
 }

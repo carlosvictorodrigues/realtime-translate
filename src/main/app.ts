@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage, screen, session } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, safeStorage, screen, session } from 'electron';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -404,6 +404,17 @@ app.whenReady().then(async () => {
       await createFloatingWidget(prefsStore);
       if (setupView && !setupView.isDestroyed()) setupView.close();
     },
+    showBarMenu: (sender) => {
+      const win = BrowserWindow.fromWebContents(sender);
+      if (!win) return;
+      const menu = Menu.buildFromTemplate([
+        { label: 'Configurações', click: () => { void createSetupView(); } },
+        { type: 'separator' },
+        { label: 'Sair', accelerator: 'Alt+F4', click: () => app.quit() },
+      ]);
+      menu.popup({ window: win });
+    },
+    quitApp: () => app.quit(),
   });
 });
 

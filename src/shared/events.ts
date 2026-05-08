@@ -17,6 +17,8 @@ export const IPC = {
   // Window management (Renderer → Main, invoke)
   OpenSetupView: 'window:openSetupView',
   SetupComplete: 'setup:complete',
+  ShowBarMenu: 'window:showBarMenu',
+  AppQuit: 'app:quit',
 
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',

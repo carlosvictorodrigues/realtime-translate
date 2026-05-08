@@ -18,6 +18,8 @@ export interface IpcInvokeMap {
   [IPC.PrefsSetDevices]: { args: DevicePrefs; result: void };
   [IPC.OpenSetupView]: { args: void; result: void };
   [IPC.SetupComplete]: { args: void; result: void };
+  [IPC.ShowBarMenu]: { args: void; result: void };
+  [IPC.AppQuit]: { args: void; result: void };
 }
 
 export interface IpcSendMap {

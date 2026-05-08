@@ -59,7 +59,14 @@ export function FloatingWidget(): JSX.Element {
   };
 
   return (
-    <div className={`rt-bar rt-bar--${bar.kind}`} role="status">
+    <div
+      className={`rt-bar rt-bar--${bar.kind}`}
+      role="status"
+      onContextMenu={(e): void => {
+        e.preventDefault();
+        void rt.showBarMenu();
+      }}
+    >
       <Orb state={bar.kind} />
       {bar.kind === 'active' && <Waveform />}
       {(bar.kind === 'idle' || bar.kind === 'active') && (

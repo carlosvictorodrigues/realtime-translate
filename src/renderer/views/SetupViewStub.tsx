@@ -359,6 +359,31 @@ export function SetupViewStub(): JSX.Element {
       </section>
 
       {error && <div style={{ color: 'var(--error)', fontSize: 12 }}>{error}</div>}
+
+      <section
+        style={{
+          marginTop: 16,
+          paddingTop: 14,
+          borderTop: '1px solid var(--border-subtle)',
+          display: 'flex',
+          justifyContent: 'flex-end',
+        }}
+      >
+        <button
+          onClick={(): void => { void rt.quit(); }}
+          style={{
+            padding: '6px 12px',
+            fontSize: 12,
+            borderRadius: 4,
+            border: '1px solid var(--border-default)',
+            background: 'transparent',
+            color: 'var(--text-tertiary)',
+            cursor: 'pointer',
+          }}
+        >
+          Sair do app
+        </button>
+      </section>
     </div>
   );
 }
