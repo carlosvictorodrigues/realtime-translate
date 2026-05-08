@@ -11,6 +11,7 @@ export const IPC = {
   // Main → Renderer (send)
   DirectionalStateChanged: 'session:directionalStateChanged',
   TranscriptDelta: 'transcript:delta',
+  LatencyMeasured: 'session:latencyMeasured',
 } as const;
 
 export type IpcChannel = (typeof IPC)[keyof typeof IPC];

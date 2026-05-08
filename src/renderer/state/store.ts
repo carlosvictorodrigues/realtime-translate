@@ -16,6 +16,7 @@ interface AppState {
   selectedHeadset: string | undefined;
   stateA: SessionState;
   stateB: SessionState;
+  latencyMs: { A: number | undefined; B: number | undefined };
 
   setHasApiKey(value: boolean): void;
   setApiKeyHint(value: string | undefined): void;
@@ -27,6 +28,7 @@ interface AppState {
   setSelectedFromMeet(deviceId: string): void;
   setSelectedHeadset(deviceId: string): void;
   setDirectionState(d: Direction, state: SessionState): void;
+  setLatency(direction: Direction, averageMs: number): void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -41,6 +43,7 @@ export const useStore = create<AppState>((set) => ({
   selectedHeadset: undefined,
   stateA: { kind: 'idle' },
   stateB: { kind: 'idle' },
+  latencyMs: { A: undefined, B: undefined },
   setHasApiKey: (hasApiKey) => set({ hasApiKey }),
   setApiKeyHint: (apiKeyHint) => set({ apiKeyHint }),
   setDevices: (devices) => set({ devices }),
@@ -52,4 +55,9 @@ export const useStore = create<AppState>((set) => ({
   setSelectedHeadset: (selectedHeadset) => set({ selectedHeadset }),
   setDirectionState: (d, state) =>
     set((s) => (d === 'A' ? { ...s, stateA: state } : { ...s, stateB: state })),
+  setLatency: (direction, averageMs) =>
+    set((s) => ({
+      ...s,
+      latencyMs: { ...s.latencyMs, [direction]: averageMs },
+    })),
 }));

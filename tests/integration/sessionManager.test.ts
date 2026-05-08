@@ -103,6 +103,7 @@ describe('SessionManager', () => {
         kind: 'input' | 'output';
         text: string;
       }) => void,
+      onLatencyMeasured: vi.fn(),
       ...overrides,
     };
   };

@@ -13,6 +13,7 @@ import { IPC } from '../shared/events';
 import type {
   DeviceInventory,
   DeviceSummary,
+  Direction,
   DirectionalState,
 } from '../shared/types';
 
@@ -191,6 +192,11 @@ app.whenReady().then(async () => {
       mainWindow.webContents.send(IPC.TranscriptDelta, t);
     }
   };
+  const emitLatency = (m: { direction: Direction; averageMs: number; sampleCount: number }): void => {
+    if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.webContents.isDestroyed()) {
+      mainWindow.webContents.send(IPC.LatencyMeasured, m);
+    }
+  };
 
   // `manager` is reassigned on each Start (after teardown of any prior session).
   // eslint can't see the closure-mutation pattern, so we suppress prefer-const.
@@ -224,6 +230,7 @@ app.whenReady().then(async () => {
         wsFactory,
         onDirectionalState: emitDirectionalState,
         onTranscript: emitTranscript,
+        onLatencyMeasured: emitLatency,
         logger,
       });
       try {

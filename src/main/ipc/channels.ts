@@ -1,5 +1,5 @@
 import { IPC } from '../../shared/events';
-import type { BidirectionalArgs, DeviceInventory, DirectionalState } from '../../shared/types';
+import type { BidirectionalArgs, DeviceInventory, Direction, DirectionalState } from '../../shared/types';
 
 export interface IpcInvokeMap {
   [IPC.GetApiKeyStatus]: { args: void; result: boolean };
@@ -14,4 +14,5 @@ export interface IpcInvokeMap {
 export interface IpcSendMap {
   [IPC.DirectionalStateChanged]: DirectionalState;
   [IPC.TranscriptDelta]: { direction: 'A' | 'B'; kind: 'input' | 'output'; text: string };
+  [IPC.LatencyMeasured]: { direction: Direction; averageMs: number; sampleCount: number };
 }

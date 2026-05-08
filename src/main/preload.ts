@@ -39,6 +39,13 @@ const api = {
       ipcRenderer.off(IPC.TranscriptDelta, handler);
     };
   },
+  onLatency: (cb: (m: IpcSendMap[typeof IPC.LatencyMeasured]) => void): (() => void) => {
+    const handler = (_evt: unknown, m: IpcSendMap[typeof IPC.LatencyMeasured]): void => cb(m);
+    ipcRenderer.on(IPC.LatencyMeasured, handler);
+    return (): void => {
+      ipcRenderer.off(IPC.LatencyMeasured, handler);
+    };
+  },
 };
 
 declare global {

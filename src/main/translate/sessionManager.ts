@@ -17,6 +17,7 @@ export interface SessionManagerConfig {
   wsFactory: WebSocketFactory;
   onDirectionalState: (s: { direction: Direction; state: SessionState }) => void;
   onTranscript: (t: { direction: Direction; kind: 'input' | 'output'; text: string }) => void;
+  onLatencyMeasured: (m: { direction: Direction; averageMs: number; sampleCount: number }) => void;
   logger?: Logger;
 }
 
@@ -111,6 +112,8 @@ export class SessionManager {
         onAudio: (b64) => pipelineRef?.handleSessionAudio(b64),
         onTranscript: (t) =>
           this.cfg.onTranscript({ direction, kind: t.kind, text: t.text }),
+        onLatencyMeasured: (m) =>
+          this.cfg.onLatencyMeasured({ direction, ...m }),
       },
       wsFactory: this.cfg.wsFactory,
       ...(this.cfg.logger ? { logger: this.cfg.logger } : {}),
