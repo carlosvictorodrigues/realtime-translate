@@ -5,6 +5,9 @@ import { MeetGuide } from '../shared/MeetGuide';
 
 export function Step5MeetConfig({ mode }: { mode?: 'edit' | undefined }): JSX.Element {
   const t = useT();
+  // TODO(m4-followup): persist meetConfirmed in useStore so back-and-forward
+  // navigation doesn't force the user to re-check after they've already
+  // confirmed once. Currently local-only — minor friction for now.
   const [confirmed, setConfirmed] = useState(false);
 
   const back = (): void => {

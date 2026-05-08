@@ -14,9 +14,11 @@ export function MeetGuide(): JSX.Element {
     <div className="meet-guide">
       {steps.map((s) => (
         <div key={s.n} className="meet-guide__step">
-          <img src={`/setup/meet-step-${s.n}.png`} alt={`Step ${s.n}`} className="meet-guide__img" />
+          {/* Relative path: production loads via file:// where leading "/" resolves
+              against the URL authority (drive root on Windows), not the renderer root. */}
+          <img src={`./setup/meet-step-${s.n}.png`} alt={s.text} className="meet-guide__img" />
           <div className="meet-guide__caption">
-            <span className="meet-guide__num">{s.n}</span>
+            <span className="meet-guide__num" aria-hidden="true">{s.n}</span>
             <span>{s.text}</span>
           </div>
         </div>
